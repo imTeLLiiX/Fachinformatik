@@ -1,4 +1,4 @@
-interface Module {
+export interface Module {
   id: string;
   title: string;
   description: string;
@@ -6,294 +6,161 @@ interface Module {
   topics: {
     title: string;
     content: string[];
-    exercises: string[];
+  }[];
+  exercises: {
+    title: string;
+    description: string;
+    solution?: string;
   }[];
   quiz: {
-    questions: number;
+    questions: {
+      question: string;
+      options: string[];
+      answer: string;
+      explanation: string;
+    }[];
     timeLimit: string;
   };
+  flashcards: {
+    question: string;
+    answer: string;
+  }[];
 }
 
-export const courseModules: { [key: string]: Module[] } = {
-  'html-css': [
-    {
-      id: 'html-1',
-      title: 'Einführung in HTML & CSS',
-      description: 'Grundlegende Konzepte und Einrichtung der Entwicklungsumgebung',
-      duration: '1 Woche',
-      topics: [
+export const courseModules: Module[] = [
+  {
+    id: "html-css-1",
+    title: "Einführung in HTML & CSS",
+    description: "Grundlegende Konzepte und Werkzeuge für Webentwicklung",
+    duration: "2 Wochen",
+    topics: [
+      {
+        title: "Kursübersicht",
+        content: [
+          "Ziele und Struktur des Kurses",
+          "Benötigte Software und Tools",
+          "Grundlegende Webkonzepte"
+        ]
+      }
+    ],
+    exercises: [
+      {
+        title: "Erste Schritte",
+        description: "Erstellen Sie Ihre erste HTML-Seite",
+        solution: "<!DOCTYPE html>\n<html>\n<head>\n<title>Meine erste Seite</title>\n</head>\n<body>\n<h1>Willkommen!</h1>\n</body>\n</html>"
+      }
+    ],
+    quiz: {
+      questions: [
         {
-          title: 'Was ist HTML und CSS?',
-          content: [
-            'Geschichte und Entwicklung von HTML/CSS',
-            'Rolle von HTML in Webseiten',
-            'Rolle von CSS in Webseiten',
-            'Aktuelle Standards: HTML5 und CSS3'
+          question: "Was bedeutet HTML?",
+          options: [
+            "Hyper Text Markup Language",
+            "High Tech Modern Language",
+            "Hyper Transfer Markup Language",
+            "Home Tool Markup Language"
           ],
-          exercises: [
-            'Erste HTML-Datei erstellen',
-            'Grundlegende Struktur analysieren'
-          ]
-        },
-        {
-          title: 'Entwicklungsumgebung einrichten',
-          content: [
-            'Installation von Visual Studio Code',
-            'Installation wichtiger Extensions',
-            'Einrichtung des Live Servers',
-            'Chrome Developer Tools kennenlernen'
-          ],
-          exercises: [
-            'VS Code konfigurieren',
-            'Erste Datei mit Live Server öffnen'
-          ]
+          answer: "Hyper Text Markup Language",
+          explanation: "HTML steht für Hyper Text Markup Language und ist die Standardsprache für Webseiten."
         }
       ],
-      quiz: {
-        questions: 10,
-        timeLimit: '15 Minuten'
-      }
+      timeLimit: "30 Minuten"
     },
-    {
-      id: 'html-2',
-      title: 'HTML Grundlagen',
-      description: 'HTML-Syntax und grundlegende Elemente',
-      duration: '2 Wochen',
-      topics: [
+    flashcards: [
+      {
+        question: "Was ist HTML?",
+        answer: "Eine Auszeichnungssprache zur Strukturierung von Webinhalten"
+      }
+    ]
+  },
+  {
+    id: "html-css-2",
+    title: "HTML Grundlagen",
+    description: "Erste Schritte mit HTML-Tags und Dokumentstruktur",
+    duration: "2 Wochen",
+    topics: [
+      {
+        title: "HTML-Dokumentstruktur",
+        content: [
+          "DOCTYPE-Deklaration",
+          "HTML, Head und Body Tags",
+          "Meta-Tags und Zeichenkodierung"
+        ]
+      }
+    ],
+    exercises: [
+      {
+        title: "Grundlegende HTML-Struktur",
+        description: "Erstellen Sie eine HTML-Seite mit korrekter Dokumentstruktur",
+        solution: "<!DOCTYPE html>\n<html lang=\"de\">\n<head>\n<meta charset=\"UTF-8\">\n<title>Meine Seite</title>\n</head>\n<body>\n<h1>Überschrift</h1>\n<p>Ein Absatz Text.</p>\n</body>\n</html>"
+      }
+    ],
+    quiz: {
+      questions: [
         {
-          title: 'HTML-Syntax',
-          content: [
-            'Elemente und Tags',
-            'Attribute',
-            'Verschachtelung',
-            'HTML-Dokumentstruktur'
+          question: "Welches Tag wird für die Hauptüberschrift verwendet?",
+          options: [
+            "<h1>",
+            "<header>",
+            "<title>",
+            "<heading>"
           ],
-          exercises: [
-            'Tags richtig verschachteln',
-            'Attribute hinzufügen',
-            'Dokumentstruktur erstellen'
-          ]
-        },
-        {
-          title: 'Grundlegende HTML-Elemente',
-          content: [
-            'Überschriften (h1-h6)',
-            'Absätze (p)',
-            'Links (a)',
-            'Bilder (img)',
-            'Listen (ul, ol, li)'
-          ],
-          exercises: [
-            'Textseite erstellen',
-            'Bilder einbinden',
-            'Navigation mit Links erstellen'
-          ]
+          answer: "<h1>",
+          explanation: "Das <h1> Tag wird für die Hauptüberschrift einer Webseite verwendet."
         }
       ],
-      quiz: {
-        questions: 15,
-        timeLimit: '20 Minuten'
+      timeLimit: "30 Minuten"
+    },
+    flashcards: [
+      {
+        question: "Was ist der Zweck des DOCTYPE-Tags?",
+        answer: "Es gibt den HTML-Standard an, den der Browser verwenden soll"
       }
-    }
-  ],
-  'sql': [
-    {
-      id: 'sql-1',
-      title: 'Einführung in Datenbanken',
-      description: 'Grundlagen relationaler Datenbanken und SQL',
-      duration: '2 Wochen',
-      topics: [
+    ]
+  },
+  {
+    id: "html-css-3",
+    title: "CSS Einführung",
+    description: "Grundlagen der CSS-Formatierung und Styling",
+    duration: "2 Wochen",
+    topics: [
+      {
+        title: "CSS-Grundlagen",
+        content: [
+          "Inline, Internal und External CSS",
+          "CSS-Selektoren",
+          "Farben und Einheiten"
+        ]
+      }
+    ],
+    exercises: [
+      {
+        title: "Erstes CSS-Styling",
+        description: "Fügen Sie CSS zu Ihrer HTML-Seite hinzu",
+        solution: "<style>\nbody {\n  font-family: Arial, sans-serif;\n  margin: 20px;\n}\nh1 {\n  color: #333;\n}\n</style>"
+      }
+    ],
+    quiz: {
+      questions: [
         {
-          title: 'Datenbankgrundlagen',
-          content: [
-            'Was sind Datenbanken?',
-            'Relationale Datenbanken',
-            'Tabellen und Beziehungen',
-            'Primär- und Fremdschlüssel'
+          question: "Wie wird eine externe CSS-Datei eingebunden?",
+          options: [
+            "<link rel=\"stylesheet\" href=\"style.css\">",
+            "<style src=\"style.css\">",
+            "<css file=\"style.css\">",
+            "<import css=\"style.css\">"
           ],
-          exercises: [
-            'Datenbankentwurf erstellen',
-            'Beziehungen definieren'
-          ]
-        },
-        {
-          title: 'SQL Basics',
-          content: [
-            'SELECT Anweisungen',
-            'WHERE Bedingungen',
-            'ORDER BY Sortierung',
-            'INSERT, UPDATE, DELETE'
-          ],
-          exercises: [
-            'Einfache Abfragen schreiben',
-            'Daten manipulieren'
-          ]
+          answer: "<link rel=\"stylesheet\" href=\"style.css\">",
+          explanation: "Externe CSS-Dateien werden mit dem <link> Tag im <head> Bereich eingebunden."
         }
       ],
-      quiz: {
-        questions: 12,
-        timeLimit: '25 Minuten'
+      timeLimit: "30 Minuten"
+    },
+    flashcards: [
+      {
+        question: "Was ist der Unterschied zwischen ID und Class Selektoren?",
+        answer: "IDs sind eindeutig (einmal pro Seite), Classes können mehrfach verwendet werden"
       }
-    }
-  ],
-  'networking': [
-    {
-      id: 'net-1',
-      title: 'Netzwerkgrundlagen',
-      description: 'Grundlegende Konzepte der Netzwerktechnik',
-      duration: '3 Wochen',
-      topics: [
-        {
-          title: 'IPv4 Grundlagen',
-          content: [
-            'IPv4-Adressen verstehen',
-            'Subnetzmasken',
-            'Netzwerk- und Hostanteile',
-            'Private und öffentliche Adressen'
-          ],
-          exercises: [
-            'IP-Adressen berechnen',
-            'Subnetzmasken anwenden'
-          ]
-        },
-        {
-          title: 'Subnetting',
-          content: [
-            'Subnetz-Planung',
-            'CIDR-Notation',
-            'Subnetz-Berechnung',
-            'Netzwerkdesign'
-          ],
-          exercises: [
-            'Subnetze berechnen',
-            'Netzwerkplan erstellen'
-          ]
-        }
-      ],
-      quiz: {
-        questions: 15,
-        timeLimit: '30 Minuten'
-      }
-    }
-  ],
-  'programming': [
-    {
-      id: 'prog-1',
-      title: 'C# Grundlagen',
-      description: 'Einführung in die C# Programmierung',
-      duration: '4 Wochen',
-      topics: [
-        {
-          title: 'C# Basics',
-          content: [
-            'Variablen und Datentypen',
-            'Kontrollstrukturen',
-            'Methoden und Funktionen',
-            'Objektorientierung'
-          ],
-          exercises: [
-            'Einfache Programme schreiben',
-            'Klassen erstellen'
-          ]
-        },
-        {
-          title: 'Fortgeschrittene Konzepte',
-          content: [
-            'Vererbung',
-            'Interfaces',
-            'Exception Handling',
-            'LINQ Grundlagen'
-          ],
-          exercises: [
-            'Vererbungshierarchie implementieren',
-            'Fehlerbehandlung einbauen'
-          ]
-        }
-      ],
-      quiz: {
-        questions: 20,
-        timeLimit: '45 Minuten'
-      }
-    }
-  ],
-  'business': [
-    {
-      id: 'bwl-1',
-      title: 'BWL Grundlagen',
-      description: 'Einführung in die Betriebswirtschaftslehre',
-      duration: '3 Wochen',
-      topics: [
-        {
-          title: 'Unternehmensformen',
-          content: [
-            'Einzelunternehmen',
-            'Personengesellschaften',
-            'Kapitalgesellschaften',
-            'Vor- und Nachteile'
-          ],
-          exercises: [
-            'Unternehmensformen vergleichen',
-            'Fallstudien analysieren'
-          ]
-        },
-        {
-          title: 'Grundlagen des Rechnungswesens',
-          content: [
-            'Buchführung',
-            'Bilanz',
-            'Gewinn- und Verlustrechnung',
-            'Kostenrechnung'
-          ],
-          exercises: [
-            'Buchungssätze erstellen',
-            'Bilanzen aufstellen'
-          ]
-        }
-      ],
-      quiz: {
-        questions: 15,
-        timeLimit: '30 Minuten'
-      }
-    }
-  ],
-  'english': [
-    {
-      id: 'eng-1',
-      title: 'Technical English',
-      description: 'Englisch für IT-Professionals',
-      duration: '4 Wochen',
-      topics: [
-        {
-          title: 'IT Vocabulary',
-          content: [
-            'Hardware Terms',
-            'Software Development',
-            'Network Terminology',
-            'Common Abbreviations'
-          ],
-          exercises: [
-            'Vocabulary Exercises',
-            'Reading Comprehension'
-          ]
-        },
-        {
-          title: 'Technical Documentation',
-          content: [
-            'Reading Documentation',
-            'Writing Documentation',
-            'Email Communication',
-            'Technical Presentations'
-          ],
-          exercises: [
-            'Write Technical Descriptions',
-            'Create Documentation'
-          ]
-        }
-      ],
-      quiz: {
-        questions: 20,
-        timeLimit: '30 Minuten'
-      }
-    }
-  ]
-}; 
+    ]
+  }
+]; 
