@@ -20,6 +20,8 @@ function LoginForm() {
     setLoading(true);
     setError('');
 
+    console.log('Starting login attempt for email:', email);
+
     try {
       const result = await signIn('credentials', {
         redirect: false,
@@ -27,15 +29,23 @@ function LoginForm() {
         password,
       });
 
+      console.log('Login result:', result);
+
       if (result?.error) {
-        setError('Ungültige E-Mail oder Passwort');
+        console.error('Login failed:', result.error);
+        if (result.error === 'CredentialsSignin') {
+          setError('Ungültige E-Mail oder Passwort');
+        } else {
+          setError(`Anmeldefehler: ${result.error}`);
+        }
       } else {
+        console.log('Login successful, redirecting to:', callbackUrl);
         router.push(callbackUrl);
         router.refresh();
       }
     } catch (error) {
-      console.error('Login error:', error);
-      setError('Ein Fehler ist aufgetreten. Bitte versuche es später erneut.');
+      console.error('Unexpected login error:', error);
+      setError('Ein unerwarteter Fehler ist aufgetreten. Bitte versuche es später erneut.');
     } finally {
       setLoading(false);
     }
