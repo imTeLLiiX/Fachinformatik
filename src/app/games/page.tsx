@@ -3,79 +3,67 @@
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 
-interface Game {
-  id: string;
-  title: string;
-  description: string;
-  difficulty: string;
-  category: string;
-}
-
-export default function GamesPage() {
+export default function Games() {
   const { data: session } = useSession();
 
-  const games: Game[] = [
+  const games = [
     {
-      id: '1',
-      title: 'HTML Tag Quiz',
-      description: 'Testen Sie Ihr Wissen über HTML-Tags und deren Verwendung.',
-      difficulty: 'Einfach',
-      category: 'HTML'
-    },
-    {
-      id: '2',
-      title: 'CSS Selektoren Challenge',
-      description: 'Üben Sie CSS-Selektoren in interaktiven Aufgaben.',
+      id: 1,
+      title: 'Code Quiz',
+      description: 'Teste dein Wissen über Programmierung und Algorithmen.',
       difficulty: 'Mittel',
-      category: 'CSS'
+      duration: '15 Minuten',
     },
     {
-      id: '3',
-      title: 'JavaScript Logik-Rätsel',
-      description: 'Lösen Sie knifflige JavaScript-Programmieraufgaben.',
-      difficulty: 'Schwer',
-      category: 'JavaScript'
+      id: 2,
+      title: 'Debug Challenge',
+      description: 'Finde und behebe Fehler in vorgegebenen Code-Snippets.',
+      difficulty: 'Fortgeschritten',
+      duration: '20 Minuten',
     },
     {
-      id: '4',
-      title: 'Responsive Design Simulator',
-      description: 'Trainieren Sie responsives Webdesign in der Praxis.',
-      difficulty: 'Mittel',
-      category: 'CSS'
-    }
+      id: 3,
+      title: 'Memory Match',
+      description: 'Finde passende Paare von Programmierkonzepten.',
+      difficulty: 'Anfänger',
+      duration: '10 Minuten',
+    },
   ];
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <h1 className="text-4xl font-bold mb-8">Lernspiele</h1>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-        {games.map((game) => (
-          <div key={game.id} className="bg-white rounded-lg shadow-lg overflow-hidden">
-            <div className="p-6">
-              <h3 className="text-2xl font-bold mb-2">{game.title}</h3>
-              <p className="text-gray-600 mb-4">{game.description}</p>
-              <div className="flex justify-between items-center text-sm text-gray-500 mb-4">
-                <span>Schwierigkeit: {game.difficulty}</span>
-                <span>Kategorie: {game.category}</span>
+    <div className="min-h-screen bg-gray-100">
+      <div className="container mx-auto px-4 py-8">
+        <h1 className="text-3xl font-bold mb-8">Lernspiele</h1>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {games.map((game) => (
+            <div key={game.id} className="bg-white rounded-lg shadow-md overflow-hidden">
+              <div className="p-6">
+                <h2 className="text-xl font-semibold mb-2">{game.title}</h2>
+                <p className="text-gray-600 mb-4">{game.description}</p>
+                <div className="flex justify-between text-sm text-gray-500 mb-4">
+                  <span>Schwierigkeit: {game.difficulty}</span>
+                  <span>Dauer: {game.duration}</span>
+                </div>
+                {session ? (
+                  <Link
+                    href={`/games/${game.id}`}
+                    className="inline-block bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 transition-colors"
+                  >
+                    Spiel starten
+                  </Link>
+                ) : (
+                  <Link
+                    href="/auth/login"
+                    className="inline-block bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600 transition-colors"
+                  >
+                    Anmelden erforderlich
+                  </Link>
+                )}
               </div>
-              {session ? (
-                <Link
-                  href={`/games/${game.id}`}
-                  className="block w-full text-center py-2 px-4 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors"
-                >
-                  Spiel starten
-                </Link>
-              ) : (
-                <Link
-                  href="/auth/login"
-                  className="block w-full text-center py-2 px-4 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors"
-                >
-                  Anmelden zum Spielen
-                </Link>
-              )}
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
     </div>
   );
