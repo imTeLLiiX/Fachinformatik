@@ -7,16 +7,19 @@ if (!process.env.MONGODB_URI) {
 const uri = process.env.MONGODB_URI;
 const options = {
   maxPoolSize: 10,
-  serverSelectionTimeoutMS: 5000,
+  serverSelectionTimeoutMS: 30000, // Erhöht auf 30 Sekunden
   socketTimeoutMS: 45000,
+  connectTimeoutMS: 30000,
+  retryWrites: true,
+  retryReads: true,
 };
 
 let client;
 let clientPromise: Promise<MongoClient>;
 
 if (process.env.NODE_ENV === 'development') {
-  // Im Entwicklungsmodus verwenden wir eine globale Variable, damit der Wert
-  // über Module-Reloads hinweg erhalten bleibt (Hot Module Replacement).
+  // In development mode, use a global variable so that the value
+  // is preserved across module reloads caused by HMR (Hot Module Replacement).
   let globalWithMongo = global as typeof globalThis & {
     _mongoClientPromise?: Promise<MongoClient>;
   };
@@ -27,7 +30,7 @@ if (process.env.NODE_ENV === 'development') {
   }
   clientPromise = globalWithMongo._mongoClientPromise;
 } else {
-  // Im Produktionsmodus ist es besser, keine globale Variable zu verwenden.
+  // In production mode, it's best to not use a global variable.
   client = new MongoClient(uri, options);
   clientPromise = client.connect();
 }
@@ -40,7 +43,7 @@ export async function connectToDatabase() {
     console.log('NODE_ENV:', process.env.NODE_ENV);
     
     const client = await clientPromise;
-    const db = client.db(process.env.MONGODB_DB);
+    const db = client.db(process.env.MONGODB_DB || 'it-learning-platform');
     
     // Test the connection
     await db.command({ ping: 1 });
@@ -61,6 +64,6 @@ export async function connectToDatabase() {
   }
 }
 
-// Exportiere ein modul-scoped MongoClient Promise. Durch die Verwendung eines
-// separaten Moduls kann der Client über Funktionen hinweg geteilt werden.
+// Export a module-scoped MongoClient promise. By doing this in a
+// separate module, the client can be shared across functions.
 export default clientPromise; 
