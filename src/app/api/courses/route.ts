@@ -4,15 +4,28 @@ import { Course } from '@/types/course';
 
 export async function GET() {
   try {
+    console.log('Starting GET /api/courses request');
     const { db } = await connectToDatabase();
-    const courses = await db.collection<Course>('courses').find({}).toArray();
+    console.log('Successfully connected to database');
+
+    const courses = await db.collection('courses').find({}).toArray();
+    console.log(`Found ${courses.length} courses`);
+
     return NextResponse.json(courses);
-  } catch (error) {
-    console.error('Error fetching courses:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch courses' },
-      { status: 500 }
-    );
+  } catch (error: unknown) {
+    console.error('Error in GET /api/courses:', error);
+    
+    if (error instanceof Error) {
+      return NextResponse.json(
+        { error: 'Fehler beim Abrufen der Kurse: ' + error.message },
+        { status: 500 }
+      );
+    } else {
+      return NextResponse.json(
+        { error: 'Fehler beim Abrufen der Kurse: Unbekannter Fehler' },
+        { status: 500 }
+      );
+    }
   }
 }
 
