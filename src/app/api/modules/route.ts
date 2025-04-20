@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { connectToDatabase } from '@/lib/mongodb';
-import { courseModules } from '@/app/courses/[courseId]/courseData';
+import { courseModules } from '@/app/courses/[courseId]/modules';
 
 export async function GET(request: NextRequest) {
   try {
@@ -12,25 +11,18 @@ export async function GET(request: NextRequest) {
     
     console.log('Request URL:', request.url);
     console.log('Course ID from params:', courseId);
-    console.log('Available course modules:', Object.keys(courseModules));
 
     if (!courseId) {
       console.error('No course ID provided');
       return NextResponse.json({ error: 'Course ID is required' }, { status: 400 });
     }
 
-    // Get modules for the specific course
-    const modules = courseModules[courseId];
-
-    if (!modules) {
-      console.error(`No modules found for course ID: ${courseId}`);
-      return NextResponse.json({ error: 'Course not found' }, { status: 404 });
-    }
-
-    console.log(`Found ${modules.length} modules for course ${courseId}`);
-    console.log('Modules:', JSON.stringify(modules, null, 2));
+    // For now, return all modules regardless of courseId
+    // This will be updated when we have course-specific modules
+    console.log(`Returning ${courseModules.length} modules`);
+    console.log('Modules:', JSON.stringify(courseModules, null, 2));
     
-    return NextResponse.json(modules);
+    return NextResponse.json(courseModules);
     
   } catch (error) {
     console.error('Error in modules API route:', error);
