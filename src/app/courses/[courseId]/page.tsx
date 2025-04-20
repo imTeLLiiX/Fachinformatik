@@ -148,7 +148,13 @@ export default function CoursePage() {
         {/* Module Content */}
         <div className="md:col-span-3">
           {selectedModuleId ? (
-            <ModuleView moduleId={selectedModuleId} />
+            <ModuleView 
+              module={modules.find(m => m.id === selectedModuleId)!}
+              onComplete={() => {
+                // Handle module completion
+                console.log('Module completed:', selectedModuleId);
+              }}
+            />
           ) : (
             <div className="bg-gray-100 p-4 rounded">
               <p>Bitte wählen Sie ein Modul aus.</p>
