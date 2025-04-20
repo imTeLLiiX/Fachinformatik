@@ -1,34 +1,68 @@
-import { NextApiRequest, NextApiResponse } from 'next';
-import { getToken } from 'next-auth/jwt';
-import { UserRole } from '@/types/user';
+import { NextAuthOptions } from 'next-auth';
+import CredentialsProvider from 'next-auth/providers/credentials';
+import bcrypt from 'bcryptjs';
+import { connectToDatabase } from './mongodb';
 
-export async function getSession(req: NextApiRequest) {
-  const token = await getToken({ req });
-  return token;
-}
+export const authOptions: NextAuthOptions = {
+  providers: [
+    CredentialsProvider({
+      name: 'Credentials',
+      credentials: {
+        email: { label: "Email", type: "email" },
+        password: { label: "Password", type: "password" }
+      },
+      async authorize(credentials) {
+        if (!credentials?.email || !credentials?.password) {
+          throw new Error('Please enter an email and password');
+        }
 
-export function isAuthenticated(req: NextApiRequest) {
-  return !!req.headers.authorization;
-}
+        const { db } = await connectToDatabase();
+        const user = await db.collection('users').findOne({ email: credentials.email });
 
-export function isAuthorized(req: NextApiRequest, allowedRoles: UserRole[]) {
-  const userRole = req.headers['x-user-role'] as UserRole;
-  return allowedRoles.includes(userRole);
-}
+        if (!user) {
+          throw new Error('No user found with this email');
+        }
 
-export function getUserId(req: NextApiRequest) {
-  return req.headers['x-user-id'] as string;
-}
+        const isValid = await bcrypt.compare(credentials.password, user.password);
 
-export function handleError(res: NextApiResponse, error: any) {
-  console.error(error);
-  res.status(500).json({ error: 'Internal Server Error' });
-}
+        if (!isValid) {
+          throw new Error('Invalid password');
+        }
 
-export function handleUnauthorized(res: NextApiResponse) {
-  res.status(401).json({ error: 'Unauthorized' });
-}
-
-export function handleForbidden(res: NextApiResponse) {
-  res.status(403).json({ error: 'Forbidden' });
-} 
+        return {
+          id: user._id.toString(),
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          isPremium: user.isPremium
+        };
+      }
+    })
+  ],
+  callbacks: {
+    async jwt({ token, user }) {
+      if (user) {
+        token.id = user.id;
+        token.role = user.role;
+        token.isPremium = user.isPremium;
+      }
+      return token;
+    },
+    async session({ session, token }) {
+      if (session.user) {
+        session.user.id = token.id as string;
+        session.user.role = token.role as 'user' | 'admin';
+        session.user.isPremium = token.isPremium as boolean;
+      }
+      return session;
+    }
+  },
+  pages: {
+    signIn: '/auth/login',
+    signOut: '/auth/logout',
+    error: '/auth/error',
+  },
+  session: {
+    strategy: 'jwt',
+  },
+}; 
