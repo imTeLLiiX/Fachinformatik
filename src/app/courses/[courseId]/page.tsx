@@ -22,28 +22,42 @@ export default function CoursePage() {
   useEffect(() => {
     async function loadModules() {
       try {
-        console.log('Loading modules for course:', courseId);
-        const response = await fetch(`/api/modules?courseId=${courseId}`);
+        console.log('Starting to load modules...');
+        console.log('Course ID:', courseId);
+        console.log('Is authenticated:', isAuthenticated);
+
+        if (!courseId) {
+          throw new Error('Keine Kurs-ID gefunden');
+        }
+
+        const apiUrl = `/api/modules?courseId=${courseId}`;
+        console.log('Fetching from URL:', apiUrl);
+
+        const response = await fetch(apiUrl);
         console.log('API Response status:', response.status);
+        console.log('API Response headers:', Object.fromEntries(response.headers.entries()));
         
         if (!response.ok) {
           const errorData = await response.json();
+          console.error('API Error:', errorData);
           throw new Error(errorData.error || 'Fehler beim Laden der Module');
         }
         
         const data = await response.json();
-        console.log('Loaded modules:', data);
+        console.log('Loaded modules data:', data);
         
         if (!Array.isArray(data)) {
+          console.error('Invalid data format:', data);
           throw new Error('Ungültiges Datenformat für Module');
         }
         
         setModules(data);
         if (data.length > 0 && !selectedModuleId) {
+          console.log('Setting first module as selected:', data[0].id);
           setSelectedModuleId(data[0].id);
         }
       } catch (err) {
-        console.error('Error loading modules:', err);
+        console.error('Error in loadModules:', err);
         setError(err instanceof Error ? err.message : 'Ein Fehler ist aufgetreten');
       } finally {
         setLoading(false);
@@ -53,7 +67,7 @@ export default function CoursePage() {
     if (courseId) {
       loadModules();
     }
-  }, [courseId, selectedModuleId]);
+  }, [courseId, selectedModuleId, isAuthenticated]);
 
   if (!isAuthenticated) {
     return (
