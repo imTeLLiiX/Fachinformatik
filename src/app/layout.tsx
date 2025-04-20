@@ -1,10 +1,8 @@
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
-import { SessionProvider } from 'next-auth/react'
-import { headers } from 'next/headers'
-import { getServerSession } from 'next-auth'
 import Navbar from '@/components/Navbar'
+import ClientProvider from '@/components/ClientProvider'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -13,20 +11,18 @@ export const metadata: Metadata = {
   description: 'Eine Plattform zum Lernen von IT-Themen',
 }
 
-export default async function RootLayout({
+export default function RootLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
-  const session = await getServerSession()
-
   return (
     <html lang="de">
       <body className={inter.className}>
-        <SessionProvider session={session}>
+        <ClientProvider>
           <Navbar />
           <main>{children}</main>
-        </SessionProvider>
+        </ClientProvider>
       </body>
     </html>
   )
