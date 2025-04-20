@@ -10,7 +10,8 @@ export const quizQuestions: Record<string, QuizQuestion[]> = {
         'Ein Zahlensystem mit der Basis 16',
         'Ein Zahlensystem mit der Basis 8'
       ],
-      correctAnswer: 0
+      answer: 'Ein Zahlensystem mit der Basis 2',
+      explanation: 'Das Binärsystem ist ein Zahlensystem mit der Basis 2, das nur die Ziffern 0 und 1 verwendet.'
     },
     {
       question: 'Welche Einheit wird für die Speicherkapazität verwendet?',
@@ -20,7 +21,8 @@ export const quizQuestions: Record<string, QuizQuestion[]> = {
         'Kilogramm',
         'Sekunde'
       ],
-      correctAnswer: 0
+      answer: 'Byte',
+      explanation: 'Byte ist die grundlegende Einheit für die Speicherkapazität in Computern.'
     }
   ],
   'programmierung': [
@@ -32,7 +34,8 @@ export const quizQuestions: Record<string, QuizQuestion[]> = {
         'Ein Datentyp',
         'Eine Programmiersprache'
       ],
-      correctAnswer: 0
+      answer: 'Ein Container für Datenwerte',
+      explanation: 'Eine Variable ist ein Container, der einen Wert speichert, der sich während der Programmausführung ändern kann.'
     },
     {
       question: 'Welches Symbol wird für Kommentare in JavaScript verwendet?',
@@ -42,29 +45,21 @@ export const quizQuestions: Record<string, QuizQuestion[]> = {
         '#',
         '--'
       ],
-      correctAnswer: 0
+      answer: '//',
+      explanation: 'In JavaScript werden einzeilige Kommentare mit // und mehrzeilige Kommentare mit /* */ geschrieben.'
     }
   ],
   'netzwerke': [
     {
       question: 'Was ist das Internet?',
       options: [
-        'Ein globales Netzwerk von Computern',
+        'Ein weltweites Netzwerk von Computern',
         'Ein lokales Netzwerk',
         'Ein Betriebssystem',
         'Eine Programmiersprache'
       ],
-      correctAnswer: 0
-    },
-    {
-      question: 'Welches Protokoll wird für die Übertragung von Webseiten verwendet?',
-      options: [
-        'HTTP',
-        'FTP',
-        'SMTP',
-        'SSH'
-      ],
-      correctAnswer: 0
+      answer: 'Ein weltweites Netzwerk von Computern',
+      explanation: 'Das Internet ist ein weltweites Netzwerk von Computern, die miteinander verbunden sind und Daten austauschen können.'
     }
   ]
 }; 
