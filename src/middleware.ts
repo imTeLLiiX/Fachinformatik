@@ -7,27 +7,27 @@ export default withAuth(
     const isAuth = !!token;
     const isAuthPage = req.nextUrl.pathname.startsWith('/auth');
 
-    if (isAuthPage) {
-      if (isAuth) {
-        return NextResponse.redirect(new URL('/', req.url));
-      }
-      return null;
+    // If user is on auth page and is authenticated, redirect to home
+    if (isAuthPage && isAuth) {
+      return NextResponse.redirect(new URL('/', req.url));
     }
 
-    if (!isAuth) {
-      let from = req.nextUrl.pathname;
-      if (req.nextUrl.search) {
-        from += req.nextUrl.search;
-      }
-
+    // If user is not authenticated and trying to access protected route
+    if (!isAuth && !isAuthPage) {
+      const from = req.nextUrl.pathname + req.nextUrl.search;
       return NextResponse.redirect(
         new URL(`/auth/login?from=${encodeURIComponent(from)}`, req.url)
       );
     }
+
+    return NextResponse.next();
   },
   {
     callbacks: {
-      authorized: ({ token }) => !!token,
+      authorized: ({ token, req }) => {
+        const isAuthPage = req.nextUrl.pathname.startsWith('/auth');
+        return isAuthPage || !!token;
+      },
     },
   }
 );
