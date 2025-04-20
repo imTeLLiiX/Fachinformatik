@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
-import { courseModules } from '@/app/courses/[courseId]/modules';
+import { courseModules } from '@/app/courses/[courseId]/courseData';
 
 export async function GET() {
   try {
@@ -17,14 +17,19 @@ export async function GET() {
     if (modules.length === 0) {
       console.log('Keine Module gefunden, füge Standard-Module hinzu...');
       try {
+        // Konvertiere die Module in das richtige Format
+        const allModules = Object.values(courseModules).flat();
+        console.log(`Konvertiere ${allModules.length} Module...`);
+        
         // Füge Standard-Module zur Datenbank hinzu
-        await db.collection('modules').insertMany(courseModules);
+        await db.collection('modules').insertMany(allModules);
         console.log('Standard-Module erfolgreich hinzugefügt');
-        return NextResponse.json(courseModules);
+        return NextResponse.json(allModules);
       } catch (insertError) {
         console.error('Fehler beim Hinzufügen der Standard-Module:', insertError);
         // Wenn das Hinzufügen fehlschlägt, gib trotzdem die Standard-Module zurück
-        return NextResponse.json(courseModules);
+        const allModules = Object.values(courseModules).flat();
+        return NextResponse.json(allModules);
       }
     }
     
@@ -35,6 +40,7 @@ export async function GET() {
     
     // Im Fehlerfall geben wir die Standard-Module zurück
     console.log('Gebe Standard-Module als Fallback zurück');
-    return NextResponse.json(courseModules);
+    const allModules = Object.values(courseModules).flat();
+    return NextResponse.json(allModules);
   }
 } 
