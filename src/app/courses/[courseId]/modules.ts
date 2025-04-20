@@ -8,6 +8,7 @@ export interface Module {
     content: string[];
   }[];
   exercises: {
+    id: string;
     title: string;
     description: string;
     solution?: string;
@@ -45,6 +46,7 @@ export const courseModules: Module[] = [
     ],
     exercises: [
       {
+        id: "ex-1",
         title: "Erste Schritte",
         description: "Erstellen Sie Ihre erste HTML-Seite",
         solution: "<!DOCTYPE html>\n<html>\n<head>\n<title>Meine erste Seite</title>\n</head>\n<body>\n<h1>Willkommen!</h1>\n</body>\n</html>"
@@ -90,6 +92,7 @@ export const courseModules: Module[] = [
     ],
     exercises: [
       {
+        id: "ex-2",
         title: "Grundlegende HTML-Struktur",
         description: "Erstellen Sie eine HTML-Seite mit korrekter Dokumentstruktur",
         solution: "<!DOCTYPE html>\n<html lang=\"de\">\n<head>\n<meta charset=\"UTF-8\">\n<title>Meine Seite</title>\n</head>\n<body>\n<h1>Überschrift</h1>\n<p>Ein Absatz Text.</p>\n</body>\n</html>"
@@ -135,6 +138,7 @@ export const courseModules: Module[] = [
     ],
     exercises: [
       {
+        id: "ex-3",
         title: "Erstes CSS-Styling",
         description: "Fügen Sie CSS zu Ihrer HTML-Seite hinzu",
         solution: "<style>\nbody {\n  font-family: Arial, sans-serif;\n  margin: 20px;\n}\nh1 {\n  color: #333;\n}\n</style>"
