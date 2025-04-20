@@ -9,6 +9,9 @@ const inter = Inter({ subsets: ['latin'] })
 export const metadata: Metadata = {
   title: 'IT Learning Platform',
   description: 'Eine Plattform zum Lernen von IT-Themen',
+  icons: {
+    icon: '/favicon.svg',
+  },
 }
 
 export default function RootLayout({

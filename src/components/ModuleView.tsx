@@ -3,8 +3,8 @@
 import { useState } from 'react';
 import { Module } from '@/app/courses/[courseId]/modules';
 import { Exercise } from './Exercise';
-import Quiz from './Quiz';
-import Flashcards from './Flashcards';
+import Quiz, { QuizQuestion } from './Quiz';
+import Flashcards, { Flashcard } from './Flashcards';
 import { Card } from './ui/card';
 import { Button } from './ui/button';
 import { Progress } from './ui/progress';
@@ -51,11 +51,9 @@ export default function ModuleView({ module, onComplete }: ModuleViewProps) {
               <Card key={index}>
                 <div className="p-6">
                   <h3 className="text-xl font-semibold mb-4">{topic.title}</h3>
-                  <ul className="list-disc list-inside space-y-2">
-                    {topic.content.map((item, itemIndex) => (
-                      <li key={itemIndex}>{item}</li>
-                    ))}
-                  </ul>
+                  <div className="prose max-w-none">
+                    {topic.content}
+                  </div>
                 </div>
               </Card>
             ))}
@@ -77,17 +75,27 @@ export default function ModuleView({ module, onComplete }: ModuleViewProps) {
           </div>
         );
       case 'quiz':
+        const quizQuestions: QuizQuestion[] = module.quiz.questions.map(q => ({
+          question: q.question,
+          options: q.options,
+          answer: q.correctAnswer,
+          explanation: 'Richtige Antwort: ' + q.correctAnswer
+        }));
         return (
           <Quiz
-            questions={module.quiz.questions}
-            timeLimit={parseInt(module.quiz.timeLimit)}
+            questions={quizQuestions}
+            timeLimit={30}
             onComplete={handleQuizComplete}
           />
         );
       case 'flashcards':
+        const flashcards: Flashcard[] = module.flashcards.cards.map(card => ({
+          question: card.front,
+          answer: card.back
+        }));
         return (
           <Flashcards
-            cards={module.flashcards}
+            cards={flashcards}
             onComplete={() => handleSectionComplete('flashcards')}
           />
         );
@@ -102,14 +110,11 @@ export default function ModuleView({ module, onComplete }: ModuleViewProps) {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold">{module.title}</h2>
-        <div className="text-sm text-gray-500">
-          {completedSections.length} von 4 Abschnitten abgeschlossen
+        <div className="w-64">
+          <Progress value={progress} />
         </div>
       </div>
-
-      <Progress value={progress} />
-
-      <div className="flex space-x-2">
+      <div className="flex space-x-4">
         <Button
           variant={currentSection === 'topics' ? 'default' : 'outline'}
           onClick={() => setCurrentSection('topics')}
@@ -135,10 +140,7 @@ export default function ModuleView({ module, onComplete }: ModuleViewProps) {
           Karteikarten
         </Button>
       </div>
-
-      <div className="mt-4">
-        {renderContent()}
-      </div>
+      {renderContent()}
     </div>
   );
 } 

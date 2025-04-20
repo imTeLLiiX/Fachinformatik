@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { courseModules } from '@/app/courses/[courseId]/modules';
+import { connectToDatabase } from '@/lib/mongodb';
+import { Module } from '@/app/courses/[courseId]/modules';
 
 export async function GET(request: NextRequest) {
   try {
     console.log('Starting modules API route...');
     
-    // Get courseId from the URL
-    const url = new URL(request.url);
-    const courseId = url.searchParams.get('courseId');
+    const { searchParams } = new URL(request.url);
+    const courseId = searchParams.get('courseId');
     
     console.log('Request URL:', request.url);
     console.log('Course ID from params:', courseId);
@@ -17,17 +17,44 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Course ID is required' }, { status: 400 });
     }
 
-    // For now, return all modules regardless of courseId
-    // This will be updated when we have course-specific modules
-    console.log(`Returning ${courseModules.length} modules`);
-    console.log('Modules:', JSON.stringify(courseModules, null, 2));
+    const { db } = await connectToDatabase();
+    const modules = await db.collection('modules')
+      .find({ courseId })
+      .toArray();
     
-    return NextResponse.json(courseModules);
+    console.log(`Found ${modules.length} modules for course ${courseId}`);
+    
+    return NextResponse.json(modules);
     
   } catch (error) {
-    console.error('Error in modules API route:', error);
+    console.error('Error fetching modules:', error);
+    return NextResponse.json({ error: 'Failed to fetch modules' }, { status: 500 });
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const { db } = await connectToDatabase();
+    const module: Module = await request.json();
+    
+    // Add timestamps
+    module.createdAt = new Date();
+    module.updatedAt = new Date();
+    
+    const result = await db.collection<Module>('modules').insertOne(module);
+    
+    if (!result.acknowledged) {
+      throw new Error('Failed to insert module');
+    }
+    
     return NextResponse.json(
-      { error: 'Failed to load modules', details: error instanceof Error ? error.message : 'Unknown error' },
+      { message: 'Module created successfully', moduleId: result.insertedId },
+      { status: 201 }
+    );
+  } catch (error) {
+    console.error('Error creating module:', error);
+    return NextResponse.json(
+      { error: 'Failed to create module' },
       { status: 500 }
     );
   }

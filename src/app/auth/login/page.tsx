@@ -27,6 +27,7 @@ function LoginForm() {
         redirect: false,
         email,
         password,
+        callbackUrl: callbackUrl
       });
 
       console.log('Login result:', result);
@@ -35,10 +36,16 @@ function LoginForm() {
         console.error('Login failed:', result.error);
         if (result.error === 'CredentialsSignin') {
           setError('Ungültige E-Mail oder Passwort');
+        } else if (result.error === 'Please enter an email and password') {
+          setError('Bitte gib E-Mail und Passwort ein');
+        } else if (result.error === 'No user found with this email') {
+          setError('Kein Benutzer mit dieser E-Mail-Adresse gefunden');
+        } else if (result.error === 'Invalid password') {
+          setError('Ungültiges Passwort');
         } else {
           setError(`Anmeldefehler: ${result.error}`);
         }
-      } else {
+      } else if (result?.ok) {
         console.log('Login successful, redirecting to:', callbackUrl);
         router.push(callbackUrl);
         router.refresh();
