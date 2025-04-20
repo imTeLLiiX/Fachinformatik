@@ -9,10 +9,14 @@ export default function Register() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
   const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setLoading(true);
+    setError('');
+
     try {
       const res = await fetch('/api/auth/register', {
         method: 'POST',
@@ -26,14 +30,17 @@ export default function Register() {
         }),
       });
 
+      const data = await res.json();
+
       if (res.ok) {
-        router.push('/auth/login');
+        router.push('/auth/login?registered=true');
       } else {
-        const data = await res.json();
-        setError(data.message || 'Ein Fehler ist aufgetreten');
+        setError(data.error || 'Ein Fehler ist aufgetreten');
       }
     } catch (error) {
       setError('Ein Fehler ist aufgetreten');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -44,11 +51,14 @@ export default function Register() {
           <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
             Registrieren
           </h2>
+          <p className="mt-2 text-center text-sm text-gray-600">
+            Erstelle dein kostenloses Konto
+          </p>
         </div>
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           {error && (
-            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-              {error}
+            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative">
+              <span className="block sm:inline">{error}</span>
             </div>
           )}
           <div className="rounded-md shadow-sm -space-y-px">
@@ -91,8 +101,9 @@ export default function Register() {
                 name="password"
                 type="password"
                 required
+                minLength={6}
                 className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                placeholder="Passwort"
+                placeholder="Passwort (mindestens 6 Zeichen)"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
               />
@@ -102,9 +113,14 @@ export default function Register() {
           <div>
             <button
               type="submit"
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              disabled={loading}
+              className={`group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white ${
+                loading
+                  ? 'bg-blue-400 cursor-not-allowed'
+                  : 'bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
+              }`}
             >
-              Registrieren
+              {loading ? 'Registriere...' : 'Registrieren'}
             </button>
           </div>
         </form>

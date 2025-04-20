@@ -5,11 +5,7 @@ if (!process.env.MONGODB_URI) {
 }
 
 const uri = process.env.MONGODB_URI;
-const options = {
-  maxPoolSize: 10,
-  serverSelectionTimeoutMS: 5000,
-  socketTimeoutMS: 45000,
-};
+const options = {};
 
 let client;
 let clientPromise: Promise<MongoClient>;
@@ -33,17 +29,11 @@ if (process.env.NODE_ENV === 'development') {
 }
 
 export async function connectToDatabase() {
-  try {
-    const client = await clientPromise;
-    const db = client.db(process.env.MONGODB_DB);
-    return { client, db };
-  } catch (error) {
-    console.error('Error connecting to MongoDB:', error);
-    throw new Error('Failed to connect to MongoDB');
-  }
+  const client = await clientPromise;
+  const db = client.db(process.env.MONGODB_DB);
+  return { db, client };
 }
 
 // Export a module-scoped MongoClient promise. By doing this in a
-// separate module and sharing it across the application, we can share
-// the same connection across all API routes.
+// separate module, the client can be shared across functions.
 export default clientPromise; 

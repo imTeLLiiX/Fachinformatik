@@ -2,17 +2,23 @@
 
 import { useState } from 'react';
 import { signIn } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
 export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const registered = searchParams.get('registered');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setLoading(true);
+    setError('');
+
     try {
       const result = await signIn('credentials', {
         redirect: false,
@@ -21,12 +27,15 @@ export default function Login() {
       });
 
       if (result?.error) {
-        setError('Ungültige Anmeldedaten');
+        setError('Ungültige E-Mail oder Passwort');
       } else {
         router.push('/dashboard');
+        router.refresh();
       }
     } catch (error) {
       setError('Ein Fehler ist aufgetreten');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -37,11 +46,21 @@ export default function Login() {
           <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
             Anmelden
           </h2>
+          <p className="mt-2 text-center text-sm text-gray-600">
+            Melde dich an, um auf deine Kurse zuzugreifen
+          </p>
         </div>
+        {registered && (
+          <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative">
+            <span className="block sm:inline">
+              Registrierung erfolgreich! Du kannst dich jetzt anmelden.
+            </span>
+          </div>
+        )}
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           {error && (
-            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-              {error}
+            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative">
+              <span className="block sm:inline">{error}</span>
             </div>
           )}
           <div className="rounded-md shadow-sm -space-y-px">
@@ -80,9 +99,14 @@ export default function Login() {
           <div>
             <button
               type="submit"
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              disabled={loading}
+              className={`group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white ${
+                loading
+                  ? 'bg-blue-400 cursor-not-allowed'
+                  : 'bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
+              }`}
             >
-              Anmelden
+              {loading ? 'Anmelden...' : 'Anmelden'}
             </button>
           </div>
         </form>
