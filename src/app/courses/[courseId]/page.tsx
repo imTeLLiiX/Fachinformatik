@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
+import { Module } from './modules';
+import ModuleView from '@/components/ModuleView';
 
 type CourseParams = {
   [key: string]: string | string[];
@@ -12,24 +14,33 @@ export default function CoursePage() {
   const params = useParams<CourseParams>();
   const courseId = params?.courseId ? (params.courseId as string) : '';
   const { isAuthenticated } = useAuth();
-  const [course, setCourse] = useState<{
-    title: string;
-    content: string;
-    level: string;
-    duration: string;
-  } | null>(null);
+  const [modules, setModules] = useState<Module[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [selectedModuleId, setSelectedModuleId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!courseId) return;
-    
-    // Hier würden wir normalerweise die Kursdaten von der API laden
-    // Für dieses Beispiel verwenden wir Mockdaten
-    setCourse({
-      title: 'Beispielkurs',
-      content: 'Dieser Kurs behandelt wichtige Themen der IT.',
-      level: 'Fortgeschritten',
-      duration: '8 Wochen'
-    });
+    async function loadModules() {
+      try {
+        const response = await fetch('/api/modules');
+        if (!response.ok) {
+          throw new Error('Fehler beim Laden der Module');
+        }
+        const data = await response.json();
+        setModules(data);
+        if (data.length > 0) {
+          setSelectedModuleId(data[0].id);
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Ein Fehler ist aufgetreten');
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    if (courseId) {
+      loadModules();
+    }
   }, [courseId]);
 
   if (!isAuthenticated) {
@@ -52,7 +63,7 @@ export default function CoursePage() {
     );
   }
 
-  if (!course) {
+  if (loading) {
     return (
       <div className="container mx-auto px-4 py-8">
         <div className="animate-pulse">
@@ -65,15 +76,49 @@ export default function CoursePage() {
     );
   }
 
+  if (error) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4" role="alert">
+          <p>{error}</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-4">{course.title}</h1>
-      <div className="flex gap-4 text-sm text-gray-600 mb-6">
-        <span>Niveau: {course.level}</span>
-        <span>Dauer: {course.duration}</span>
-      </div>
-      <div className="prose max-w-none">
-        <p>{course.content}</p>
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        {/* Module Navigation */}
+        <div className="md:col-span-1">
+          <h2 className="text-xl font-bold mb-4">Module</h2>
+          <nav className="space-y-2">
+            {modules.map((module) => (
+              <button
+                key={module.id}
+                onClick={() => setSelectedModuleId(module.id)}
+                className={`w-full text-left px-4 py-2 rounded ${
+                  selectedModuleId === module.id
+                    ? 'bg-blue-500 text-white'
+                    : 'bg-gray-100 hover:bg-gray-200'
+                }`}
+              >
+                {module.title}
+              </button>
+            ))}
+          </nav>
+        </div>
+
+        {/* Module Content */}
+        <div className="md:col-span-3">
+          {selectedModuleId ? (
+            <ModuleView moduleId={selectedModuleId} />
+          ) : (
+            <div className="bg-gray-100 p-4 rounded">
+              <p>Bitte wählen Sie ein Modul aus.</p>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
