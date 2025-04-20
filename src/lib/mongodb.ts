@@ -1,7 +1,7 @@
 import { MongoClient } from 'mongodb';
 
 if (!process.env.MONGODB_URI) {
-  throw new Error('Please add your Mongo URI to .env.local');
+  throw new Error('Bitte füge deine MongoDB URI zu .env.local hinzu');
 }
 
 const uri = process.env.MONGODB_URI;
@@ -11,8 +11,8 @@ let client;
 let clientPromise: Promise<MongoClient>;
 
 if (process.env.NODE_ENV === 'development') {
-  // In development mode, use a global variable so that the value
-  // is preserved across module reloads caused by HMR (Hot Module Replacement).
+  // Im Entwicklungsmodus verwenden wir eine globale Variable, damit der Wert
+  // über Module-Reloads hinweg erhalten bleibt (Hot Module Replacement).
   let globalWithMongo = global as typeof globalThis & {
     _mongoClientPromise?: Promise<MongoClient>;
   };
@@ -23,22 +23,31 @@ if (process.env.NODE_ENV === 'development') {
   }
   clientPromise = globalWithMongo._mongoClientPromise;
 } else {
-  // In production mode, it's best to not use a global variable.
+  // Im Produktionsmodus ist es besser, keine globale Variable zu verwenden.
   client = new MongoClient(uri, options);
   clientPromise = client.connect();
 }
 
 export async function connectToDatabase() {
   try {
+    console.log('Versuche Verbindung zu MongoDB herzustellen...');
     const client = await clientPromise;
     const db = client.db(process.env.MONGODB_DB);
+    console.log('Erfolgreich mit MongoDB verbunden');
     return { db, client };
-  } catch (error) {
-    console.error('MongoDB connection error:', error);
-    throw new Error('Failed to connect to database');
+  } catch (error: unknown) {
+    console.error('MongoDB Verbindungsfehler:', error);
+    console.error('MongoDB URI:', process.env.MONGODB_URI);
+    console.error('MongoDB DB:', process.env.MONGODB_DB);
+    
+    if (error instanceof Error) {
+      throw new Error('Verbindung zur Datenbank fehlgeschlagen: ' + error.message);
+    } else {
+      throw new Error('Verbindung zur Datenbank fehlgeschlagen: Unbekannter Fehler');
+    }
   }
 }
 
-// Export a module-scoped MongoClient promise. By doing this in a
-// separate module, the client can be shared across functions.
+// Exportiere ein modul-scoped MongoClient Promise. Durch die Verwendung eines
+// separaten Moduls kann der Client über Funktionen hinweg geteilt werden.
 export default clientPromise; 
