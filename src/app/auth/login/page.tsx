@@ -12,7 +12,7 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
-  const registered = searchParams.get('registered');
+  const registered = searchParams?.get('registered') ?? null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
