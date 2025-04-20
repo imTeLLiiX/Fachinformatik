@@ -22,16 +22,28 @@ export default function CoursePage() {
   useEffect(() => {
     async function loadModules() {
       try {
-        const response = await fetch('/api/modules');
+        console.log('Loading modules for course:', courseId);
+        const response = await fetch(`/api/modules?courseId=${courseId}`);
+        console.log('API Response status:', response.status);
+        
         if (!response.ok) {
-          throw new Error('Fehler beim Laden der Module');
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Fehler beim Laden der Module');
         }
+        
         const data = await response.json();
+        console.log('Loaded modules:', data);
+        
+        if (!Array.isArray(data)) {
+          throw new Error('Ungültiges Datenformat für Module');
+        }
+        
         setModules(data);
-        if (data.length > 0) {
+        if (data.length > 0 && !selectedModuleId) {
           setSelectedModuleId(data[0].id);
         }
       } catch (err) {
+        console.error('Error loading modules:', err);
         setError(err instanceof Error ? err.message : 'Ein Fehler ist aufgetreten');
       } finally {
         setLoading(false);
@@ -41,7 +53,7 @@ export default function CoursePage() {
     if (courseId) {
       loadModules();
     }
-  }, [courseId]);
+  }, [courseId, selectedModuleId]);
 
   if (!isAuthenticated) {
     return (
@@ -81,6 +93,16 @@ export default function CoursePage() {
       <div className="container mx-auto px-4 py-8">
         <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4" role="alert">
           <p>{error}</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (modules.length === 0) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4" role="alert">
+          <p>Keine Module für diesen Kurs verfügbar.</p>
         </div>
       </div>
     );

@@ -1,46 +1,36 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
 import { courseModules } from '@/app/courses/[courseId]/courseData';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    console.log('Starte API-Route für Module...');
-    const { db } = await connectToDatabase();
-    console.log('Datenbankverbindung hergestellt');
+    console.log('Starting modules API route...');
     
-    // Hole Module aus der Datenbank
-    console.log('Suche Module in der Datenbank...');
-    const modules = await db.collection('modules').find({}).toArray();
-    console.log(`Gefundene Module: ${modules.length}`);
+    // Get courseId from the URL
+    const url = new URL(request.url);
+    const courseId = url.searchParams.get('courseId');
     
-    // Wenn keine Module in der Datenbank sind, verwende die Standard-Module
-    if (modules.length === 0) {
-      console.log('Keine Module gefunden, füge Standard-Module hinzu...');
-      try {
-        // Konvertiere die Module in das richtige Format
-        const allModules = Object.values(courseModules).flat();
-        console.log(`Konvertiere ${allModules.length} Module...`);
-        
-        // Füge Standard-Module zur Datenbank hinzu
-        await db.collection('modules').insertMany(allModules);
-        console.log('Standard-Module erfolgreich hinzugefügt');
-        return NextResponse.json(allModules);
-      } catch (insertError) {
-        console.error('Fehler beim Hinzufügen der Standard-Module:', insertError);
-        // Wenn das Hinzufügen fehlschlägt, gib trotzdem die Standard-Module zurück
-        const allModules = Object.values(courseModules).flat();
-        return NextResponse.json(allModules);
-      }
+    if (!courseId) {
+      return NextResponse.json({ error: 'Course ID is required' }, { status: 400 });
     }
-    
-    console.log('Gebe Module zurück');
+
+    console.log('Requested course ID:', courseId);
+
+    // Get modules for the specific course
+    const modules = courseModules[courseId];
+
+    if (!modules) {
+      return NextResponse.json({ error: 'Course not found' }, { status: 404 });
+    }
+
+    console.log(`Found ${modules.length} modules for course ${courseId}`);
     return NextResponse.json(modules);
-  } catch (error) {
-    console.error('Fehler beim Laden der Module:', error);
     
-    // Im Fehlerfall geben wir die Standard-Module zurück
-    console.log('Gebe Standard-Module als Fallback zurück');
-    const allModules = Object.values(courseModules).flat();
-    return NextResponse.json(allModules);
+  } catch (error) {
+    console.error('Error loading modules:', error);
+    return NextResponse.json(
+      { error: 'Failed to load modules' },
+      { status: 500 }
+    );
   }
 } 
