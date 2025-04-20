@@ -2,16 +2,50 @@
 
 import { useState, useEffect } from 'react';
 import { Module } from '@/app/courses/[courseId]/modules';
-import { courseModules } from '@/app/courses/[courseId]/modules';
 
 interface ModuleViewProps {
   moduleId: string;
 }
 
 export default function ModuleView({ moduleId }: ModuleViewProps) {
-  // Finde das aktuelle Modul
-  const module = courseModules.find(m => m.id === moduleId);
-  if (!module) return <div>Modul nicht gefunden</div>;
+  const [module, setModule] = useState<Module | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function loadModule() {
+      try {
+        const response = await fetch('/api/modules');
+        if (!response.ok) {
+          throw new Error('Fehler beim Laden der Module');
+        }
+        const modules = await response.json();
+        const currentModule = modules.find((m: Module) => m.id === moduleId);
+        if (!currentModule) {
+          throw new Error('Modul nicht gefunden');
+        }
+        setModule(currentModule);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Ein Fehler ist aufgetreten');
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadModule();
+  }, [moduleId]);
+
+  if (loading) {
+    return <div>Lade Modul...</div>;
+  }
+
+  if (error) {
+    return <div>Fehler: {error}</div>;
+  }
+
+  if (!module) {
+    return <div>Modul nicht gefunden</div>;
+  }
 
   return (
     <div className="space-y-6">
