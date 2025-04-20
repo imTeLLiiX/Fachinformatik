@@ -14,6 +14,7 @@
     "save-modules-js": "node scripts/save-modules.js"
   },
   "dependencies": {
+    "@radix-ui/react-slot": "^1.2.0",
     "@react-three/drei": "^9.99.0",
     "@react-three/fiber": "^8.15.16",
     "@shadcn/ui": "^0.0.4",
