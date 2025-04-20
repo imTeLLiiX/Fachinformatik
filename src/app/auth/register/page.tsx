@@ -17,6 +17,12 @@ export default function Register() {
     setLoading(true);
     setError('');
 
+    if (password.length < 6) {
+      setError('Das Passwort muss mindestens 6 Zeichen lang sein');
+      setLoading(false);
+      return;
+    }
+
     try {
       const res = await fetch('/api/auth/register', {
         method: 'POST',
@@ -38,7 +44,8 @@ export default function Register() {
         setError(data.error || 'Ein Fehler ist aufgetreten');
       }
     } catch (error) {
-      setError('Ein Fehler ist aufgetreten');
+      console.error('Registration error:', error);
+      setError('Ein Fehler ist aufgetreten. Bitte versuche es später erneut.');
     } finally {
       setLoading(false);
     }
@@ -75,6 +82,7 @@ export default function Register() {
                 placeholder="Name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
+                disabled={loading}
               />
             </div>
             <div>
@@ -90,6 +98,7 @@ export default function Register() {
                 placeholder="E-Mail-Adresse"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                disabled={loading}
               />
             </div>
             <div>
@@ -106,6 +115,7 @@ export default function Register() {
                 placeholder="Passwort (mindestens 6 Zeichen)"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                disabled={loading}
               />
             </div>
           </div>

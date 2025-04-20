@@ -1,7 +1,7 @@
 import { NextAuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import bcrypt from 'bcryptjs';
-import clientPromise from './mongodb';
+import { connectToDatabase } from './mongodb';
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -16,27 +16,37 @@ export const authOptions: NextAuthOptions = {
           throw new Error('Please enter an email and password');
         }
 
-        const client = await clientPromise;
-        const db = client.db(process.env.MONGODB_DB);
-        const user = await db.collection('users').findOne({ email: credentials.email });
+        try {
+          const { db } = await connectToDatabase();
+          const user = await db.collection('users').findOne({ email: credentials.email });
 
-        if (!user) {
-          throw new Error('No user found with this email');
+          if (!user) {
+            throw new Error('No user found with this email');
+          }
+
+          const isValid = await bcrypt.compare(credentials.password, user.password);
+
+          if (!isValid) {
+            throw new Error('Invalid password');
+          }
+
+          // Update last login
+          await db.collection('users').updateOne(
+            { _id: user._id },
+            { $set: { lastLogin: new Date() } }
+          );
+
+          return {
+            id: user._id.toString(),
+            name: user.name,
+            email: user.email,
+            role: user.role,
+            isPremium: user.isPremium
+          };
+        } catch (error) {
+          console.error('Auth error:', error);
+          throw new Error('Authentication failed');
         }
-
-        const isValid = await bcrypt.compare(credentials.password, user.password);
-
-        if (!isValid) {
-          throw new Error('Invalid password');
-        }
-
-        return {
-          id: user._id.toString(),
-          name: user.name,
-          email: user.email,
-          role: user.role,
-          isPremium: user.isPremium
-        };
       }
     })
   ],
@@ -66,4 +76,5 @@ export const authOptions: NextAuthOptions = {
   session: {
     strategy: 'jwt',
   },
+  debug: process.env.NODE_ENV === 'development',
 }; 
