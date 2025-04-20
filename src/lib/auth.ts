@@ -1,7 +1,7 @@
 import { NextAuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import bcrypt from 'bcryptjs';
-import { connectToDatabase } from './mongodb';
+import clientPromise from './mongodb';
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -16,7 +16,8 @@ export const authOptions: NextAuthOptions = {
           throw new Error('Please enter an email and password');
         }
 
-        const { db } = await connectToDatabase();
+        const client = await clientPromise;
+        const db = client.db(process.env.MONGODB_DB);
         const user = await db.collection('users').findOne({ email: credentials.email });
 
         if (!user) {
