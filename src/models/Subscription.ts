@@ -1,3 +1,6 @@
-import { Subscription as PrismaSubscription } from '@prisma/client';
+import { SubscriptionStatus, SubscriptionTier } from '@prisma/client';
 
-export type Subscription = PrismaSubscription; 
+export type Subscription = {
+  status: SubscriptionStatus;
+  tier: SubscriptionTier;
+}; 

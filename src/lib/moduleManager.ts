@@ -1,5 +1,5 @@
 import { prisma } from './prisma';
-import { Module } from '@/models/Module';
+import { Module } from '@prisma/client';
 
 /**
  * Modul-Manager für Plug-and-Play Modulintegration
@@ -164,12 +164,24 @@ export const moduleManager = ModuleManager.getInstance();
 
 export async function getModule(slug: string): Promise<Module | null> {
   return prisma.module.findUnique({
-    where: { slug },
+    where: { slug }
   });
 }
 
 export async function getAllModules(): Promise<Module[]> {
   return prisma.module.findMany({
-    orderBy: { order: 'asc' },
+    orderBy: { order: 'asc' }
+  });
+}
+
+export async function saveModule(module: Omit<Module, 'id'>): Promise<Module> {
+  return prisma.module.create({
+    data: module
+  });
+}
+
+export async function deleteModule(id: string): Promise<void> {
+  await prisma.module.delete({
+    where: { id }
   });
 } 
