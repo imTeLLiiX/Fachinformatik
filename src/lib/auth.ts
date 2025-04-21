@@ -1,7 +1,6 @@
 import { NextAuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import { hash, compare } from 'bcrypt';
-import clientPromise from './mongodb';
 import { createSession, deleteSession, getSession } from './session';
 import { prisma } from './prisma';
 
@@ -22,12 +21,10 @@ export const authOptions: NextAuthOptions = {
         }
 
         try {
-          console.log('Attempting to connect to database...');
-          const client = await clientPromise;
-          const db = client.db(process.env.MONGODB_DB || 'it-learning-platform');
-          console.log('Connected to database, searching for user...');
-          
-          const user = await db.collection('users').findOne({ email: credentials.email });
+          console.log('Searching for user...');
+          const user = await prisma.user.findUnique({
+            where: { email: credentials.email }
+          });
           console.log('User search result:', user ? 'User found' : 'No user found');
 
           if (!user) {
@@ -35,7 +32,7 @@ export const authOptions: NextAuthOptions = {
           }
 
           console.log('Comparing passwords...');
-          const isValid = await compare(credentials.password, user.password);
+          const isValid = await compare(credentials.password, user.passwordHash);
           console.log('Password comparison result:', isValid ? 'Valid' : 'Invalid');
 
           if (!isValid) {
@@ -43,18 +40,18 @@ export const authOptions: NextAuthOptions = {
           }
 
           console.log('Updating last login...');
-          await db.collection('users').updateOne(
-            { _id: user._id },
-            { $set: { lastLogin: new Date() } }
-          );
+          await prisma.user.update({
+            where: { id: user.id },
+            data: { updatedAt: new Date() }
+          });
 
           console.log('Login successful, returning user data');
           return {
-            id: user._id.toString(),
-            name: user.name,
+            id: user.id,
+            name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email,
             email: user.email,
-            role: user.role,
-            isPremium: user.isPremium
+            role: user.role.toLowerCase(),
+            isPremium: false // We'll implement this later
           };
         } catch (error) {
           console.error('Auth error:', error);
@@ -101,38 +98,39 @@ export async function verifyPassword(password: string, hashedPassword: string): 
 }
 
 export async function signUp(email: string, password: string, name: string) {
-  const existingUser = await prisma.user.findUnique({ where: { email } });
-  if (existingUser) {
-    throw new Error('User already exists');
-  }
-
   const hashedPassword = await hashPassword(password);
+  const [firstName, ...lastNameParts] = name.split(' ');
+  const lastName = lastNameParts.join(' ');
+
   const user = await prisma.user.create({
     data: {
       email,
-      password: hashedPassword,
-      name,
-      role: 'user'
-    }
+      passwordHash: hashedPassword,
+      firstName,
+      lastName,
+      role: 'USER',
+    },
   });
 
-  const session = await createSession(user.id);
-  return { user, session };
+  return user;
 }
 
 export async function signIn(email: string, password: string) {
-  const user = await prisma.user.findUnique({ where: { email } });
+  const user = await prisma.user.findUnique({
+    where: { email },
+  });
+
   if (!user) {
-    throw new Error('Invalid credentials');
+    throw new Error('No user found with this email');
   }
 
-  const isValid = await verifyPassword(password, user.password);
+  const isValid = await verifyPassword(password, user.passwordHash);
+
   if (!isValid) {
-    throw new Error('Invalid credentials');
+    throw new Error('Invalid password');
   }
 
-  const session = await createSession(user.id);
-  return { user, session };
+  return user;
 }
 
 export async function signOut() {
@@ -144,7 +142,7 @@ export async function getCurrentUser() {
   if (!session) return null;
 
   const user = await prisma.user.findUnique({
-    where: { id: session.userId }
+    where: { id: session.userId },
   });
 
   return user;
@@ -152,16 +150,14 @@ export async function getCurrentUser() {
 
 export async function requireAuth() {
   const user = await getCurrentUser();
-  if (!user) {
-    throw new Error('Authentication required');
-  }
+  if (!user) throw new Error('Not authenticated');
   return user;
 }
 
 export async function requireRole(role: string) {
   const user = await requireAuth();
-  if (user.role !== role) {
-    throw new Error('Insufficient permissions');
+  if (user.role.toLowerCase() !== role.toLowerCase()) {
+    throw new Error('Not authorized');
   }
   return user;
 } 
