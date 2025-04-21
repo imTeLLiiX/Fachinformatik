@@ -8,64 +8,76 @@ import {
   invalidateModulesListCache
 } from "@/lib/redis"
 import { Module } from "@/lib/types"
+import { connectToDatabase } from '@/lib/mongodb'
+import { ObjectId } from 'mongodb'
 
 export async function GET(
   req: Request,
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions)
-    if (!session?.user) {
-      return new NextResponse("Unauthorized", { status: 401 })
-    }
-
-    // Try to get cached module
+    // Try to get from cache first
     const cachedModule = await getCachedModule(params.id)
     if (cachedModule) {
       return NextResponse.json(cachedModule)
     }
 
-    // If not cached, fetch from database
-    const module = await Module.findById(params.id).lean()
+    // If not in cache, get from database
+    const { db } = await connectToDatabase()
+    const module = await db.collection('modules').findOne({ 
+      _id: new ObjectId(params.id)
+    })
+
     if (!module) {
-      return new NextResponse("Not found", { status: 404 })
+      return NextResponse.json(
+        { error: 'Module not found' },
+        { status: 404 }
+      )
     }
 
-    // Cache the module
+    // Cache the result
     await setCachedModule(params.id, module)
 
     return NextResponse.json(module)
   } catch (error) {
-    console.error("[MODULE_GET]", error)
-    return new NextResponse("Internal error", { status: 500 })
+    console.error('Error fetching module:', error)
+    return NextResponse.json(
+      { error: 'Internal Server Error' },
+      { status: 500 }
+    )
   }
 }
 
-export async function PATCH(
+export async function PUT(
   req: Request,
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions)
-    if (!session?.user || !["content-admin", "super-admin"].includes(session.user.role)) {
-      return new NextResponse("Unauthorized", { status: 401 })
-    }
-
+    const { db } = await connectToDatabase()
     const body = await req.json()
-    const module = await Module.findByIdAndUpdate(params.id, body, { new: true })
 
-    if (!module) {
-      return new NextResponse("Not found", { status: 404 })
+    const result = await db.collection('modules').updateOne(
+      { _id: new ObjectId(params.id) },
+      { $set: body }
+    )
+
+    if (result.matchedCount === 0) {
+      return NextResponse.json(
+        { error: 'Module not found' },
+        { status: 404 }
+      )
     }
 
-    // Invalidate caches
+    // Invalidate cache
     await invalidateModuleCache(params.id)
-    await invalidateModulesListCache()
 
-    return NextResponse.json(module)
+    return NextResponse.json({ message: 'Module updated successfully' })
   } catch (error) {
-    console.error("[MODULE_PATCH]", error)
-    return new NextResponse("Internal error", { status: 500 })
+    console.error('Error updating module:', error)
+    return NextResponse.json(
+      { error: 'Internal Server Error' },
+      { status: 500 }
+    )
   }
 }
 
@@ -74,23 +86,27 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions)
-    if (!session?.user || !["content-admin", "super-admin"].includes(session.user.role)) {
-      return new NextResponse("Unauthorized", { status: 401 })
+    const { db } = await connectToDatabase()
+    const result = await db.collection('modules').deleteOne({ 
+      _id: new ObjectId(params.id)
+    })
+
+    if (result.deletedCount === 0) {
+      return NextResponse.json(
+        { error: 'Module not found' },
+        { status: 404 }
+      )
     }
 
-    const module = await Module.findByIdAndDelete(params.id)
-    if (!module) {
-      return new NextResponse("Not found", { status: 404 })
-    }
-
-    // Invalidate caches
+    // Invalidate cache
     await invalidateModuleCache(params.id)
-    await invalidateModulesListCache()
 
-    return new NextResponse(null, { status: 204 })
+    return NextResponse.json({ message: 'Module deleted successfully' })
   } catch (error) {
-    console.error("[MODULE_DELETE]", error)
-    return new NextResponse("Internal error", { status: 500 })
+    console.error('Error deleting module:', error)
+    return NextResponse.json(
+      { error: 'Internal Server Error' },
+      { status: 500 }
+    )
   }
 } 

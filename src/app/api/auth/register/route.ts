@@ -38,14 +38,15 @@ export async function POST(request: Request) {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     // Create user
-    const newUser: UserDocument = {
-      name,
+    const newUser = {
       email,
       password: hashedPassword,
+      name,
       role: 'user',
+      status: 'active',
+      isPremium: false,
       createdAt: new Date(),
-      lastLogin: new Date(),
-      isPremium: false
+      lastLogin: new Date()
     };
 
     const result = await usersCollection.insertOne(newUser);

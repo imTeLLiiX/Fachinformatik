@@ -1,7 +1,11 @@
 import { NextAuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
-import bcrypt from 'bcryptjs';
+import { hash, compare } from 'bcrypt';
 import clientPromise from './mongodb';
+import { createSession, deleteSession, getSession } from './session';
+import { prisma } from './prisma';
+
+const SALT_ROUNDS = 10;
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -31,7 +35,7 @@ export const authOptions: NextAuthOptions = {
           }
 
           console.log('Comparing passwords...');
-          const isValid = await bcrypt.compare(credentials.password, user.password);
+          const isValid = await compare(credentials.password, user.password);
           console.log('Password comparison result:', isValid ? 'Valid' : 'Invalid');
 
           if (!isValid) {
@@ -86,4 +90,78 @@ export const authOptions: NextAuthOptions = {
     strategy: 'jwt',
   },
   debug: process.env.NODE_ENV === 'development',
-}; 
+};
+
+export async function hashPassword(password: string): Promise<string> {
+  return hash(password, SALT_ROUNDS);
+}
+
+export async function verifyPassword(password: string, hashedPassword: string): Promise<boolean> {
+  return compare(password, hashedPassword);
+}
+
+export async function signUp(email: string, password: string, name: string) {
+  const existingUser = await prisma.user.findUnique({ where: { email } });
+  if (existingUser) {
+    throw new Error('User already exists');
+  }
+
+  const hashedPassword = await hashPassword(password);
+  const user = await prisma.user.create({
+    data: {
+      email,
+      password: hashedPassword,
+      name,
+      role: 'user'
+    }
+  });
+
+  const session = await createSession(user.id);
+  return { user, session };
+}
+
+export async function signIn(email: string, password: string) {
+  const user = await prisma.user.findUnique({ where: { email } });
+  if (!user) {
+    throw new Error('Invalid credentials');
+  }
+
+  const isValid = await verifyPassword(password, user.password);
+  if (!isValid) {
+    throw new Error('Invalid credentials');
+  }
+
+  const session = await createSession(user.id);
+  return { user, session };
+}
+
+export async function signOut() {
+  await deleteSession();
+}
+
+export async function getCurrentUser() {
+  const session = await getSession();
+  if (!session) return null;
+
+  const user = await prisma.user.findUnique({
+    where: { id: session.userId }
+  });
+
+  return user;
+}
+
+export async function requireAuth() {
+  const user = await getCurrentUser();
+  if (!user) {
+    throw new Error('Authentication required');
+  }
+  return user;
+}
+
+export async function requireRole(role: string) {
+  const user = await requireAuth();
+  if (user.role !== role) {
+    throw new Error('Insufficient permissions');
+  }
+  return user;
+} 

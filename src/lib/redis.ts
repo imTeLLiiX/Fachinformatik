@@ -1,19 +1,19 @@
-import { Redis } from "ioredis"
+import { Redis } from '@upstash/redis'
 import { Module } from "@/types/module"
 
-if (!process.env.REDIS_URL) {
-  throw new Error("REDIS_URL ist nicht definiert")
-}
+const redis = new Redis({
+  url: process.env.REDIS_URL || '',
+  token: process.env.REDIS_TOKEN || '',
+})
 
-const redis = new Redis(process.env.REDIS_URL)
+const MODULE_CACHE_PREFIX = 'module:'
+const MODULES_LIST_CACHE_KEY = 'modules:list'
+const CACHE_TTL = 3600 // 1 hour in seconds
 
 export class ModuleCache {
-  private static readonly CACHE_PREFIX = "module:"
-  private static readonly CACHE_TTL = 3600 // 1 Stunde
-
   static async getModule(moduleId: string): Promise<Module | null> {
     try {
-      const cached = await redis.get(`${this.CACHE_PREFIX}${moduleId}`)
+      const cached = await redis.get(`${MODULE_CACHE_PREFIX}${moduleId}`)
       if (cached) {
         return JSON.parse(cached)
       }
@@ -27,8 +27,8 @@ export class ModuleCache {
   static async setModule(moduleId: string, module: Module): Promise<void> {
     try {
       await redis.setex(
-        `${this.CACHE_PREFIX}${moduleId}`,
-        this.CACHE_TTL,
+        `${MODULE_CACHE_PREFIX}${moduleId}`,
+        CACHE_TTL,
         JSON.stringify(module)
       )
     } catch (error) {
@@ -38,7 +38,7 @@ export class ModuleCache {
 
   static async invalidateModule(moduleId: string): Promise<void> {
     try {
-      await redis.del(`${this.CACHE_PREFIX}${moduleId}`)
+      await redis.del(`${MODULE_CACHE_PREFIX}${moduleId}`)
     } catch (error) {
       console.error("Fehler beim Invalidieren des Modul-Caches:", error)
     }
@@ -46,7 +46,7 @@ export class ModuleCache {
 
   static async getModulesForCourse(courseId: string): Promise<Module[] | null> {
     try {
-      const cached = await redis.get(`${this.CACHE_PREFIX}course:${courseId}`)
+      const cached = await redis.get(`${MODULE_CACHE_PREFIX}course:${courseId}`)
       if (cached) {
         return JSON.parse(cached)
       }
@@ -60,8 +60,8 @@ export class ModuleCache {
   static async setModulesForCourse(courseId: string, modules: Module[]): Promise<void> {
     try {
       await redis.setex(
-        `${this.CACHE_PREFIX}course:${courseId}`,
-        this.CACHE_TTL,
+        `${MODULE_CACHE_PREFIX}course:${courseId}`,
+        CACHE_TTL,
         JSON.stringify(modules)
       )
     } catch (error) {
@@ -71,24 +71,42 @@ export class ModuleCache {
 
   static async invalidateCourseModules(courseId: string): Promise<void> {
     try {
-      await redis.del(`${this.CACHE_PREFIX}course:${courseId}`)
+      await redis.del(`${MODULE_CACHE_PREFIX}course:${courseId}`)
     } catch (error) {
       console.error("Fehler beim Invalidieren des Kurs-Modul-Caches:", error)
     }
   }
 }
 
-export async function getCachedModulesList() {
-  const cached = await redis.get("modules:list")
-  return cached ? JSON.parse(cached) : null
+export async function getCachedModule(id: string): Promise<any> {
+  const cacheKey = `${MODULE_CACHE_PREFIX}${id}`
+  const data = await redis.get(cacheKey)
+  return data ? JSON.parse(data as string) : null
 }
 
-export async function setCachedModulesList(data: any) {
-  await redis.set("modules:list", JSON.stringify(data), "EX", 1800) // 30 minutes
+export async function setCachedModule(id: string, data: any): Promise<void> {
+  const cacheKey = `${MODULE_CACHE_PREFIX}${id}`
+  await redis.set(cacheKey, JSON.stringify(data))
+  await redis.expire(cacheKey, CACHE_TTL)
 }
 
-export async function invalidateModulesListCache() {
-  await redis.del("modules:list")
+export async function invalidateModuleCache(id: string): Promise<void> {
+  const cacheKey = `${MODULE_CACHE_PREFIX}${id}`
+  await redis.del(cacheKey)
+}
+
+export async function getCachedModulesList(): Promise<any> {
+  const data = await redis.get(MODULES_LIST_CACHE_KEY)
+  return data ? JSON.parse(data as string) : null
+}
+
+export async function setCachedModulesList(data: any): Promise<void> {
+  await redis.set(MODULES_LIST_CACHE_KEY, JSON.stringify(data))
+  await redis.expire(MODULES_LIST_CACHE_KEY, CACHE_TTL)
+}
+
+export async function invalidateModulesListCache(): Promise<void> {
+  await redis.del(MODULES_LIST_CACHE_KEY)
 }
 
 export default redis 

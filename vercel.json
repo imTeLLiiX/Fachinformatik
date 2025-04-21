@@ -4,11 +4,5 @@
   "devCommand": "npm run dev",
   "installCommand": "npm install",
   "framework": "nextjs",
-  "regions": ["fra1"],
-  "env": {
-    "MONGODB_URI": "mongodb+srv://nicomerkel:crazy-TeLLiiX8918@cluster0.h9ynj8u.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0",
-    "MONGODB_DB": "it_learning_platform",
-    "NEXTAUTH_URL": "https://it-learning-platform.vercel.app",
-    "NEXTAUTH_SECRET": "ein-sicherer-zufälliger-string"
-  }
+  "regions": ["fra1"]
 } 

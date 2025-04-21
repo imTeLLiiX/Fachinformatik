@@ -353,4 +353,6 @@ export function ModuleView({ module, onComplete }: ModuleViewProps) {
       </Tabs>
     </div>
   );
-} 
+}
+
+export default ModuleView; 

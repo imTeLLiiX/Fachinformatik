@@ -3,247 +3,170 @@
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { User, UserUpdate, UserRole, UserStatus, SubscriptionType } from '@/models/User';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Progress } from '@/components/ui/progress';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { UserDocument, UserUpdate } from '@/models/User';
 
-interface UserDetailPageProps {
-  params: {
-    id: string;
-  };
-}
-
-export default function UserDetailPage({ params }: UserDetailPageProps) {
+export default function UserEditPage({ params }: { params: { id: string } }) {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<UserDocument | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState<UserUpdate>({});
 
   useEffect(() => {
     if (status === 'unauthenticated') {
-      router.push('/auth/login');
-    } else if (status === 'authenticated' && session?.user?.role !== 'admin') {
-      router.push('/');
+      router.push('/login');
     }
-  }, [status, session, router]);
+  }, [status, router]);
 
   useEffect(() => {
     const fetchUser = async () => {
       try {
         const response = await fetch(`/api/users/${params.id}`);
-        if (!response.ok) {
-          throw new Error('Fehler beim Abrufen des Benutzers');
-        }
+        if (!response.ok) throw new Error('Failed to fetch user');
         const data = await response.json();
         setUser(data);
-        setFormData({
-          name: data.name,
-          email: data.email,
-          role: data.role,
-          status: data.status,
-          subscription: data.subscription
-        });
+        setFormData(data);
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Ein unbekannter Fehler ist aufgetreten');
+        setError(err instanceof Error ? err.message : 'An error occurred');
       } finally {
         setLoading(false);
       }
     };
 
-    if (session?.user?.role === 'admin') {
-      fetchUser();
-    }
-  }, [session, params.id]);
+    fetchUser();
+  }, [params.id]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       const response = await fetch(`/api/users/${params.id}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
       });
 
-      if (!response.ok) {
-        throw new Error('Fehler beim Aktualisieren des Benutzers');
-      }
-
-      const updatedUser = await response.json();
-      setUser(updatedUser);
-      setIsEditing(false);
+      if (!response.ok) throw new Error('Failed to update user');
+      router.push('/admin/users');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Ein unbekannter Fehler ist aufgetreten');
+      setError(err instanceof Error ? err.message : 'An error occurred');
     }
   };
 
-  const handleDelete = async () => {
-    if (!confirm('Möchten Sie diesen Benutzer wirklich löschen?')) {
-      return;
-    }
-
-    try {
-      const response = await fetch(`/api/users/${params.id}`, {
-        method: 'DELETE',
-      });
-
-      if (!response.ok) {
-        throw new Error('Fehler beim Löschen des Benutzers');
-      }
-
-      router.push('/admin/dashboard');
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Ein unbekannter Fehler ist aufgetreten');
-    }
-  };
-
-  if (loading) {
-    return <div className="flex items-center justify-center min-h-screen">Laden...</div>;
-  }
-
-  if (error) {
-    return <div className="text-red-500 text-center p-4">{error}</div>;
-  }
-
-  if (!user) {
-    return <div className="text-center p-4">Benutzer nicht gefunden</div>;
-  }
+  if (loading) return <div>Loading...</div>;
+  if (error) return <div>Error: {error}</div>;
+  if (!user) return <div>User not found</div>;
 
   return (
-    <div className="container mx-auto p-6">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold">Benutzerdetails</h1>
-        <div className="space-x-4">
-          <Button
-            variant="outline"
-            onClick={() => setIsEditing(!isEditing)}
-          >
-            {isEditing ? 'Abbrechen' : 'Bearbeiten'}
-          </Button>
-          <Button
-            variant="destructive"
-            onClick={handleDelete}
-          >
-            Löschen
-          </Button>
-        </div>
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-3xl font-bold">Benutzer bearbeiten</h1>
+        <p className="text-gray-500">Bearbeiten Sie die Benutzerinformationen</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <form onSubmit={handleSubmit} className="space-y-8">
         <Card>
           <CardHeader>
             <CardTitle>Benutzerinformationen</CardTitle>
-            <CardDescription>Grundlegende Informationen über den Benutzer</CardDescription>
+            <CardDescription>Bearbeiten Sie die grundlegenden Informationen des Benutzers</CardDescription>
           </CardHeader>
-          <CardContent>
-            {isEditing ? (
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium mb-1">Name</label>
-                  <input
-                    type="text"
-                    value={formData.name || ''}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="w-full p-2 border rounded"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">E-Mail</label>
-                  <input
-                    type="email"
-                    value={formData.email || ''}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    className="w-full p-2 border rounded"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">Rolle</label>
-                  <select
-                    value={formData.role || ''}
-                    onChange={(e) => setFormData({ ...formData, role: e.target.value as UserRole })}
-                    className="w-full p-2 border rounded"
-                  >
-                    <option value="learner">Lernender</option>
-                    <option value="instructor">Dozent</option>
-                    <option value="admin">Administrator</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">Status</label>
-                  <select
-                    value={formData.status || ''}
-                    onChange={(e) => setFormData({ ...formData, status: e.target.value as UserStatus })}
-                    className="w-full p-2 border rounded"
-                  >
-                    <option value="active">Aktiv</option>
-                    <option value="inactive">Inaktiv</option>
-                    <option value="suspended">Gesperrt</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">Abonnement</label>
-                  <select
-                    value={formData.subscription || ''}
-                    onChange={(e) => setFormData({ ...formData, subscription: e.target.value as SubscriptionType })}
-                    className="w-full p-2 border rounded"
-                  >
-                    <option value="basic">Basic</option>
-                    <option value="premium">Premium</option>
-                    <option value="enterprise">Enterprise</option>
-                  </select>
-                </div>
-                <Button type="submit">Speichern</Button>
-              </form>
-            ) : (
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium">Name</label>
-                  <p className="mt-1">{user.name}</p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium">E-Mail</label>
-                  <p className="mt-1">{user.email}</p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium">Rolle</label>
-                  <p className="mt-1">{user.role}</p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium">Status</label>
-                  <p className="mt-1">{user.status}</p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium">Abonnement</label>
-                  <p className="mt-1">{user.subscription}</p>
-                </div>
-              </div>
-            )}
+          <CardContent className="space-y-4">
+            <div className="grid w-full items-center gap-1.5">
+              <Label htmlFor="name">Name</Label>
+              <Input
+                id="name"
+                value={formData.name || ''}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              />
+            </div>
+
+            <div className="grid w-full items-center gap-1.5">
+              <Label htmlFor="email">E-Mail</Label>
+              <Input
+                id="email"
+                type="email"
+                value={formData.email || ''}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              />
+            </div>
+
+            <div className="grid w-full items-center gap-1.5">
+              <Label htmlFor="role">Rolle</Label>
+              <Select
+                value={formData.role}
+                onValueChange={(value) => setFormData({ ...formData, role: value as UserDocument['role'] })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Wählen Sie eine Rolle" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="user">Benutzer</SelectItem>
+                  <SelectItem value="admin">Administrator</SelectItem>
+                  <SelectItem value="super-admin">Super Admin</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="grid w-full items-center gap-1.5">
+              <Label htmlFor="status">Status</Label>
+              <Select
+                value={formData.status}
+                onValueChange={(value) => setFormData({ ...formData, status: value as UserDocument['status'] })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Wählen Sie einen Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="active">Aktiv</SelectItem>
+                  <SelectItem value="inactive">Inaktiv</SelectItem>
+                  <SelectItem value="suspended">Gesperrt</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="grid w-full items-center gap-1.5">
+              <Label htmlFor="subscription">Abonnement</Label>
+              <Select
+                value={formData.subscription}
+                onValueChange={(value) => setFormData({ ...formData, subscription: value as UserDocument['subscription'] })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Wählen Sie ein Abonnement" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="basic">Basic</SelectItem>
+                  <SelectItem value="premium">Premium</SelectItem>
+                  <SelectItem value="enterprise">Enterprise</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Kursfortschritt</CardTitle>
-            <CardDescription>Übersicht der abgeschlossenen Kurse und Module</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {Object.entries(user.progress).map(([courseId, progress]) => (
-              <div key={courseId} className="mb-4">
-                <h3 className="font-medium mb-2">{courseId}</h3>
-                <Progress value={progress.progress} className="mb-2" />
-                <p className="text-sm text-gray-500">
-                  {progress.completedModules.length} von {progress.completedModules.length + progress.completedExercises.length} Modulen abgeschlossen
-                </p>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-      </div>
+        <div className="flex justify-end space-x-4">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => router.push('/admin/users')}
+          >
+            Abbrechen
+          </Button>
+          <Button type="submit">
+            Speichern
+          </Button>
+        </div>
+      </form>
     </div>
   );
 } 
