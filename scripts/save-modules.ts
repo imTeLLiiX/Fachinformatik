@@ -1,7 +1,9 @@
-import { MongoClient } from 'mongodb';
+import { PrismaClient } from '@prisma/client';
 import fs from 'fs';
 import path from 'path';
 import { courseModules } from '../src/app/courses/[courseId]/modules';
+
+const prisma = new PrismaClient();
 
 function loadEnvVars() {
   const envPath = path.join(process.cwd(), '.env.local');
@@ -23,28 +25,25 @@ function loadEnvVars() {
 async function saveModules() {
   const envVars = loadEnvVars();
   
-  if (!envVars.MONGODB_URI) {
-    throw new Error('Please define the MONGODB_URI environment variable in .env.local');
+  if (!envVars.DATABASE_URL) {
+    throw new Error('Please define the DATABASE_URL environment variable in .env.local');
   }
 
-  const uri = envVars.MONGODB_URI;
-  console.log('Connecting to MongoDB...');
+  console.log('Connecting to database...');
   
   try {
-    const client = new MongoClient(uri);
-    await client.connect();
-    console.log('Connected to MongoDB successfully');
-    
-    const db = client.db(envVars.MONGODB_DB || 'it_learning_platform');
-    const collection = db.collection('modules');
+    // Delete existing modules
+    await prisma.module.deleteMany({});
+    console.log('Deleted existing modules');
     
     // Insert the modules
-    await collection.deleteMany({}); // Clear existing modules
-    const result = await collection.insertMany(courseModules);
+    const result = await prisma.module.createMany({
+      data: courseModules,
+    });
     
-    console.log(`Successfully inserted ${result.insertedCount} modules`);
+    console.log(`Successfully inserted ${result.count} modules`);
     
-    await client.close();
+    await prisma.$disconnect();
     console.log('Connection closed');
   } catch (error) {
     console.error('Error:', error);
