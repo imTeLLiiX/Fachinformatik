@@ -6,14 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Search, Plus, Edit, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { prisma } from '@/lib/prisma';
-import type { Prisma } from '@prisma/client';
-
-type UserWithSubscriptions = Prisma.UserGetPayload<{
-  include: {
-    enrollments: true;
-    courses: true;
-  }
-}>;
+import type { User } from '@prisma/client';
 
 // TODO: Replace with real data from database
 const roles = [
