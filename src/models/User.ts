@@ -1,32 +1,45 @@
-import { ObjectId } from 'mongodb';
-import { UserRole } from '@/types/user';
+export type UserRole = 'admin' | 'instructor' | 'learner';
+export type UserStatus = 'active' | 'inactive' | 'suspended';
+export type SubscriptionType = 'basic' | 'premium' | 'enterprise';
 
-export interface UserDocument {
-  _id?: ObjectId;
+export interface UserProgress {
+  [courseId: string]: {
+    completedModules: string[];
+    completedExercises: string[];
+    completedQuizzes: string[];
+    lastAccessed: Date;
+    progress: number;
+  };
+}
+
+export interface User {
+  _id: string;
   name: string;
   email: string;
   password: string;
   role: UserRole;
+  status: UserStatus;
+  subscription: SubscriptionType;
+  progress: UserProgress;
   createdAt: Date;
+  updatedAt: Date;
   lastLogin: Date;
-  isPremium: boolean;
-  premiumExpiresAt?: Date;
-  stripeCustomerId?: string;
 }
 
-export interface UserCreateInput {
+export interface UserInput {
   name: string;
   email: string;
   password: string;
   role?: UserRole;
+  status?: UserStatus;
+  subscription?: SubscriptionType;
 }
 
-export interface UserUpdateInput {
+export interface UserUpdate {
   name?: string;
   email?: string;
   password?: string;
   role?: UserRole;
-  isPremium?: boolean;
-  premiumExpiresAt?: Date;
-  stripeCustomerId?: string;
+  status?: UserStatus;
+  subscription?: SubscriptionType;
 } 

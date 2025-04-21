@@ -19,68 +19,18 @@ function loadEnvVars() {
   return envVars;
 }
 
-const modules = [
-  {
-    id: 'html-css-1',
-    courseId: 'html-css',
-    title: 'Modul 1: Einführung',
-    description: 'Kursübersicht und Voraussetzungen für HTML und CSS',
-    duration: '1 Stunde',
-    topics: [
-      {
-        id: 'html-css-1-topic-1',
-        title: 'Kursübersicht und Voraussetzungen',
-        content: 'Einführung in den Kurs und Überblick über die Lernziele'
-      },
-      {
-        id: 'html-css-1-topic-2',
-        title: 'Was ist HTML und CSS?',
-        content: 'Grundlegende Konzepte von HTML als Auszeichnungssprache und CSS als Styling-Sprache'
-      }
-    ],
-    exercises: [
-      {
-        id: 'html-css-1-exercise-1',
-        title: 'Kursvorbereitung',
-        description: 'Überprüfen Sie Ihre Vorkenntnisse und erstellen Sie einen Lernplan',
-        solution: '1. Notieren Sie Ihre Vorkenntnisse\n2. Erstellen Sie einen Zeitplan\n3. Legen Sie Ihre Lernziele fest'
-      }
-    ],
-    quiz: {
-      id: 'html-css-1-quiz-1',
-      title: 'Einführungsquiz',
-      questions: [
-        {
-          id: 'html-css-1-quiz-1-q1',
-          question: 'Was ist HTML?',
-          options: [
-            'Eine Programmiersprache',
-            'Eine Auszeichnungssprache',
-            'Ein Styling-Tool',
-            'Ein Datenbankformat'
-          ],
-          correctAnswer: 'Eine Auszeichnungssprache'
-        }
-      ]
-    },
-    flashcards: {
-      id: 'html-css-1-flashcards-1',
-      title: 'Grundbegriffe',
-      cards: [
-        {
-          id: 'html-css-1-flashcards-1-c1',
-          front: 'Was bedeutet HTML?',
-          back: 'HyperText Markup Language'
-        },
-        {
-          id: 'html-css-1-flashcards-1-c2',
-          front: 'Was bedeutet CSS?',
-          back: 'Cascading Style Sheets'
-        }
-      ]
-    }
-  }
-];
+// Import the modules from modules.ts
+const modulesPath = path.join(process.cwd(), 'src', 'app', 'courses', '[courseId]', 'modules.ts');
+const modulesContent = fs.readFileSync(modulesPath, 'utf8');
+
+// Extract the modules array from the TypeScript file
+const modulesMatch = modulesContent.match(/export const courseModules: Module\[\] = (\[[\s\S]*?\]);/);
+if (!modulesMatch) {
+  throw new Error('Could not find modules array in modules.ts');
+}
+
+// Parse the modules array
+const modules = eval(modulesMatch[1]);
 
 async function saveModules() {
   const envVars = loadEnvVars();

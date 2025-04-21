@@ -1,5 +1,10 @@
 import { MongoClient } from 'mongodb';
 import { courseModules } from '../app/courses/[courseId]/modules';
+import * as dotenv from 'dotenv';
+import { resolve } from 'path';
+
+// Load environment variables from .env.local
+dotenv.config({ path: resolve(__dirname, '../../.env.local') });
 
 async function saveModules() {
   if (!process.env.MONGODB_URI) {
