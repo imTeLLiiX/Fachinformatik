@@ -6,12 +6,12 @@ import { Input } from '@/components/ui/input';
 import { Search, Plus, Edit, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { prisma } from '@/lib/prisma';
+import { User, Role, SubscriptionStatus, SubscriptionTier } from '@prisma/client';
 
 // TODO: Replace with real data from database
 const roles = [
-  { id: 'learner', name: 'Lernender', color: 'bg-blue-100 text-blue-800' },
-  { id: 'content-admin', name: 'Content Admin', color: 'bg-purple-100 text-purple-800' },
-  { id: 'super-admin', name: 'Super Admin', color: 'bg-red-100 text-red-800' }
+  { id: 'USER', name: 'Benutzer', color: 'bg-blue-100 text-blue-800' },
+  { id: 'ADMIN', name: 'Administrator', color: 'bg-red-100 text-red-800' }
 ];
 
 export default async function UsersPage() {
@@ -63,15 +63,14 @@ export default async function UsersPage() {
                   <th className="text-left py-3 px-4">Email</th>
                   <th className="text-left py-3 px-4">Rolle</th>
                   <th className="text-left py-3 px-4">Status</th>
-                  <th className="text-left py-3 px-4">Letzter Login</th>
                   <th className="text-left py-3 px-4">Abonnement</th>
                   <th className="text-left py-3 px-4">Aktionen</th>
                 </tr>
               </thead>
               <tbody>
-                {users.map((user) => (
+                {users.map((user: User) => (
                   <tr key={user.id} className="border-b">
-                    <td className="py-3 px-4">{user.name}</td>
+                    <td className="py-3 px-4">{`${user.firstName || ''} ${user.lastName || ''}`}</td>
                     <td className="py-3 px-4">{user.email}</td>
                     <td className="py-3 px-4">
                       <span className={`px-2 py-1 rounded-full text-xs ${
@@ -82,28 +81,27 @@ export default async function UsersPage() {
                     </td>
                     <td className="py-3 px-4">
                       <span className={`px-2 py-1 rounded-full text-xs ${
-                        user.status === 'active' ? 'bg-green-100 text-green-800' :
+                        user.subscriptionStatus === 'ACTIVE' ? 'bg-green-100 text-green-800' :
                         'bg-red-100 text-red-800'
                       }`}>
-                        {user.status}
+                        {user.subscriptionStatus || 'UNPAID'}
                       </span>
                     </td>
-                    <td className="py-3 px-4">{user.lastLogin}</td>
                     <td className="py-3 px-4">
                       <span className={`px-2 py-1 rounded-full text-xs ${
-                        user.subscription === 'premium' ? 'bg-yellow-100 text-yellow-800' :
-                        user.subscription === 'lifetime' ? 'bg-purple-100 text-purple-800' :
+                        user.subscriptionTier === 'PREMIUM' ? 'bg-yellow-100 text-yellow-800' :
+                        user.subscriptionTier === 'BASIC' ? 'bg-purple-100 text-purple-800' :
                         'bg-blue-100 text-blue-800'
                       }`}>
-                        {user.subscription}
+                        {user.subscriptionTier}
                       </span>
                     </td>
                     <td className="py-3 px-4">
                       <div className="flex space-x-2">
-                        <Button variant="outline" size="sm">
+                        <Button variant="ghost" size="sm">
                           <Edit className="w-4 h-4" />
                         </Button>
-                        <Button variant="outline" size="sm" className="text-red-500 hover:text-red-700">
+                        <Button variant="ghost" size="sm">
                           <Trash2 className="w-4 h-4" />
                         </Button>
                       </div>
