@@ -1,60 +1,79 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { moduleManager } from '@/lib/moduleManager';
 import { Module } from '@/app/courses/[courseId]/modules';
+import { prisma } from '@/lib/prisma';
 
-export async function GET(request: NextRequest) {
+export async function GET(request: Request) {
   try {
-    console.log('Starting modules API route...');
-    
     const { searchParams } = new URL(request.url);
     const courseId = searchParams.get('courseId');
-    const forceRefresh = searchParams.get('forceRefresh') === 'true';
-    
-    console.log('Request URL:', request.url);
-    console.log('Course ID from params:', courseId);
-    console.log('Force refresh:', forceRefresh);
 
     if (!courseId) {
-      console.error('No course ID provided');
-      return NextResponse.json({ error: 'Course ID is required' }, { status: 400 });
-    }
-
-    // Verwende den ModuleManager, um die Module zu laden
-    const modules = await moduleManager.getModulesForCourse(courseId, forceRefresh);
-    
-    console.log(`Found ${modules.length} modules for course ${courseId}`);
-    
-    return NextResponse.json(modules);
-    
-  } catch (error) {
-    console.error('Error fetching modules:', error);
-    return NextResponse.json({ error: 'Failed to fetch modules' }, { status: 500 });
-  }
-}
-
-export async function POST(request: NextRequest) {
-  try {
-    const module: Module = await request.json();
-    
-    // Validiere das Modul
-    if (!module.id || !module.courseId || !module.title || !module.description || !module.duration) {
       return NextResponse.json(
-        { error: 'Missing required fields' },
+        { error: 'courseId ist erforderlich' },
         { status: 400 }
       );
     }
-    
-    // Verwende den ModuleManager, um das Modul zu speichern
-    const moduleId = await moduleManager.saveModule(module);
-    
+
+    const modules = await prisma.module.findMany({
+      where: { courseId },
+      orderBy: { order: 'asc' }
+    });
+
+    return NextResponse.json(modules);
+  } catch (error) {
+    console.error('Error in GET /api/modules:', error);
     return NextResponse.json(
-      { message: 'Module created successfully', moduleId },
+      { error: 'Fehler beim Abrufen der Module' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function POST(request: Request) {
+  try {
+    const moduleData = await request.json();
+    const { courseId, title, description, content, order } = moduleData;
+
+    if (!courseId || !title || !description || !content || order === undefined) {
+      return NextResponse.json(
+        { error: 'Alle Pflichtfelder müssen ausgefüllt sein' },
+        { status: 400 }
+      );
+    }
+
+    // Überprüfen, ob der Kurs existiert
+    const course = await prisma.course.findUnique({
+      where: { id: courseId }
+    });
+
+    if (!course) {
+      return NextResponse.json(
+        { error: 'Der angegebene Kurs existiert nicht' },
+        { status: 404 }
+      );
+    }
+
+    const module = await prisma.module.create({
+      data: {
+        title,
+        description,
+        content,
+        order,
+        courseId,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      }
+    });
+
+    return NextResponse.json(
+      { message: 'Modul erfolgreich erstellt', moduleId: module.id },
       { status: 201 }
     );
   } catch (error) {
     console.error('Error creating module:', error);
     return NextResponse.json(
-      { error: 'Failed to create module' },
+      { error: 'Fehler beim Erstellen des Moduls' },
       { status: 500 }
     );
   }

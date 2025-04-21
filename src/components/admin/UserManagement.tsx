@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -20,128 +20,185 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Search, Plus, Pencil, Trash2 } from 'lucide-react'
+import { Label } from '@/components/ui/label'
+import { toast } from '@/components/ui/use-toast'
+import { Badge } from '@/components/ui/badge'
 
 interface User {
   id: string
-  name: string
   email: string
-  role: 'learner' | 'content-admin' | 'super-admin'
-  subscription: 'basic' | 'pro' | 'lifetime'
+  firstName: string
+  lastName: string
+  role: 'USER' | 'ADMIN' | 'INSTRUCTOR'
+  isVerified: boolean
   createdAt: string
 }
 
-export function UserManagement() {
-  const [users, setUsers] = useState<User[]>([
-    {
-      id: '1',
-      name: 'Max Mustermann',
-      email: 'max@example.com',
-      role: 'learner',
-      subscription: 'basic',
-      createdAt: '2024-01-01'
-    },
-    // Weitere Beispieldaten hier...
-  ])
+export default function UserManagement() {
+  const [users, setUsers] = useState<User[]>([])
+  const [loading, setLoading] = useState(true)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [roleFilter, setRoleFilter] = useState<string>('all')
 
-  const [searchTerm, setSearchTerm] = useState('')
-  const [selectedRole, setSelectedRole] = useState<string>('all')
+  useEffect(() => {
+    fetchUsers()
+  }, [])
+
+  const fetchUsers = async () => {
+    try {
+      const response = await fetch('/api/users')
+      const data = await response.json()
+      setUsers(data)
+    } catch (error) {
+      toast({
+        title: 'Fehler',
+        description: 'Benutzer konnten nicht geladen werden',
+        variant: 'destructive'
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleRoleChange = async (userId: string, newRole: string) => {
+    try {
+      const response = await fetch(`/api/users/${userId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ role: newRole })
+      })
+
+      if (!response.ok) throw new Error('Fehler beim Aktualisieren der Rolle')
+
+      toast({
+        title: 'Erfolg',
+        description: 'Benutzerrolle wurde erfolgreich aktualisiert'
+      })
+
+      fetchUsers()
+    } catch (error) {
+      toast({
+        title: 'Fehler',
+        description: 'Benutzerrolle konnte nicht aktualisiert werden',
+        variant: 'destructive'
+      })
+    }
+  }
+
+  const handleDelete = async (userId: string) => {
+    if (!confirm('Möchten Sie diesen Benutzer wirklich löschen?')) return
+
+    try {
+      const response = await fetch(`/api/users/${userId}`, {
+        method: 'DELETE'
+      })
+
+      if (!response.ok) throw new Error('Fehler beim Löschen des Benutzers')
+
+      toast({
+        title: 'Erfolg',
+        description: 'Benutzer wurde erfolgreich gelöscht'
+      })
+
+      fetchUsers()
+    } catch (error) {
+      toast({
+        title: 'Fehler',
+        description: 'Benutzer konnte nicht gelöscht werden',
+        variant: 'destructive'
+      })
+    }
+  }
 
   const filteredUsers = users.filter(user => {
     const matchesSearch = 
-      user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchTerm.toLowerCase())
+      user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      user.firstName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      user.lastName?.toLowerCase().includes(searchQuery.toLowerCase())
     
-    const matchesRole = selectedRole === 'all' || user.role === selectedRole
+    const matchesRole = roleFilter === 'all' || user.role === roleFilter
 
     return matchesSearch && matchesRole
   })
 
+  if (loading) return <div>Laden...</div>
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Benutzer</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center space-x-2">
-            <div className="relative">
-              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Suchen..."
-                className="pl-8"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
-            <Select
-              value={selectedRole}
-              onValueChange={setSelectedRole}
-            >
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Rolle auswählen" />
+    <div className="space-y-6">
+      <Card className="p-6">
+        <div className="flex items-center space-x-4 mb-6">
+          <div className="flex-1">
+            <Label htmlFor="search">Benutzer suchen</Label>
+            <Input
+              id="search"
+              placeholder="Nach Name oder E-Mail suchen..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+          <div className="w-48">
+            <Label htmlFor="role">Rolle filtern</Label>
+            <Select value={roleFilter} onValueChange={setRoleFilter}>
+              <SelectTrigger>
+                <SelectValue placeholder="Alle Rollen" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Alle Rollen</SelectItem>
-                <SelectItem value="learner">Lernender</SelectItem>
-                <SelectItem value="content-admin">Content Admin</SelectItem>
-                <SelectItem value="super-admin">Super Admin</SelectItem>
+                <SelectItem value="USER">Benutzer</SelectItem>
+                <SelectItem value="ADMIN">Administrator</SelectItem>
+                <SelectItem value="INSTRUCTOR">Dozent</SelectItem>
               </SelectContent>
             </Select>
           </div>
-          <Button>
-            <Plus className="mr-2 h-4 w-4" />
-            Neuer Benutzer
-          </Button>
         </div>
 
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Rolle</TableHead>
-              <TableHead>Abonnement</TableHead>
-              <TableHead>Erstellt am</TableHead>
-              <TableHead className="text-right">Aktionen</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredUsers.map((user) => (
-              <TableRow key={user.id}>
-                <TableCell>{user.name}</TableCell>
-                <TableCell>{user.email}</TableCell>
-                <TableCell>
-                  <span className={`px-2 py-1 rounded-full text-xs ${
-                    user.role === 'super-admin' ? 'bg-red-100 text-red-800' :
-                    user.role === 'content-admin' ? 'bg-blue-100 text-blue-800' :
-                    'bg-green-100 text-green-800'
-                  }`}>
-                    {user.role}
-                  </span>
-                </TableCell>
-                <TableCell>
-                  <span className={`px-2 py-1 rounded-full text-xs ${
-                    user.subscription === 'lifetime' ? 'bg-purple-100 text-purple-800' :
-                    user.subscription === 'pro' ? 'bg-blue-100 text-blue-800' :
-                    'bg-gray-100 text-gray-800'
-                  }`}>
-                    {user.subscription}
-                  </span>
-                </TableCell>
-                <TableCell>{new Date(user.createdAt).toLocaleDateString()}</TableCell>
-                <TableCell className="text-right">
-                  <Button variant="ghost" size="icon">
-                    <Pencil className="h-4 w-4" />
+        <div className="space-y-4">
+          {filteredUsers.map((user) => (
+            <Card key={user.id} className="p-4">
+              <div className="flex justify-between items-start">
+                <div>
+                  <h3 className="text-xl font-semibold">
+                    {user.firstName} {user.lastName}
+                  </h3>
+                  <p className="text-gray-600">{user.email}</p>
+                  <div className="mt-2 space-x-2">
+                    <Badge variant={user.isVerified ? "default" : "secondary"}>
+                      {user.isVerified ? 'Verifiziert' : 'Nicht verifiziert'}
+                    </Badge>
+                    <Badge variant="outline">
+                      {user.role}
+                    </Badge>
+                  </div>
+                  <p className="text-sm text-gray-500 mt-2">
+                    Registriert am: {new Date(user.createdAt).toLocaleDateString()}
+                  </p>
+                </div>
+                <div className="space-x-2">
+                  <Select
+                    value={user.role}
+                    onValueChange={(value) => handleRoleChange(user.id, value)}
+                  >
+                    <SelectTrigger className="w-32">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="USER">Benutzer</SelectItem>
+                      <SelectItem value="ADMIN">Administrator</SelectItem>
+                      <SelectItem value="INSTRUCTOR">Dozent</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    variant="destructive"
+                    onClick={() => handleDelete(user.id)}
+                  >
+                    Löschen
                   </Button>
-                  <Button variant="ghost" size="icon">
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </CardContent>
-    </Card>
+                </div>
+              </div>
+            </Card>
+          ))}
+        </div>
+      </Card>
+    </div>
   )
 } 

@@ -26,4 +26,27 @@ enum Role {
   USER
   ADMIN
   INSTRUCTOR
+}
+
+model Course {
+  id          String   @id @default(cuid()) @map("_id")
+  title       String
+  description String
+  level       String
+  duration    Int
+  modules     Module[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Module {
+  id          String   @id @default(cuid()) @map("_id")
+  title       String
+  description String
+  content     Json
+  order       Int
+  courseId    String
+  course      Course   @relation(fields: [courseId], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 } 

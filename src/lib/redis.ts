@@ -1,25 +1,29 @@
-import { Redis } from '@upstash/redis'
-import { Module } from "@/types/module"
+import { Redis } from 'ioredis'
+import { Module } from '@prisma/client'
 
-const redis = new Redis({
-  url: process.env.REDIS_URL || '',
-  token: process.env.REDIS_TOKEN || '',
-})
+if (!process.env.REDIS_URL) {
+  throw new Error('REDIS_URL ist nicht definiert')
+}
+
+const redis = new Redis(process.env.REDIS_URL)
 
 const MODULE_CACHE_PREFIX = 'module:'
 const MODULES_LIST_CACHE_KEY = 'modules:list'
 const CACHE_TTL = 3600 // 1 hour in seconds
 
 export class ModuleCache {
+  private static readonly CACHE_PREFIX = 'module:'
+  private static readonly CACHE_TTL = 60 * 60 // 1 Stunde
+
   static async getModule(moduleId: string): Promise<Module | null> {
     try {
-      const cached = await redis.get(`${MODULE_CACHE_PREFIX}${moduleId}`)
-      if (cached) {
-        return JSON.parse(cached)
+      const cachedModule = await redis.get(`${this.CACHE_PREFIX}${moduleId}`)
+      if (cachedModule) {
+        return JSON.parse(cachedModule)
       }
       return null
     } catch (error) {
-      console.error("Fehler beim Abrufen des Moduls aus dem Cache:", error)
+      console.error('Fehler beim Abrufen des Moduls aus dem Cache:', error)
       return null
     }
   }
@@ -27,32 +31,32 @@ export class ModuleCache {
   static async setModule(moduleId: string, module: Module): Promise<void> {
     try {
       await redis.setex(
-        `${MODULE_CACHE_PREFIX}${moduleId}`,
-        CACHE_TTL,
+        `${this.CACHE_PREFIX}${moduleId}`,
+        this.CACHE_TTL,
         JSON.stringify(module)
       )
     } catch (error) {
-      console.error("Fehler beim Speichern des Moduls im Cache:", error)
+      console.error('Fehler beim Speichern des Moduls im Cache:', error)
     }
   }
 
   static async invalidateModule(moduleId: string): Promise<void> {
     try {
-      await redis.del(`${MODULE_CACHE_PREFIX}${moduleId}`)
+      await redis.del(`${this.CACHE_PREFIX}${moduleId}`)
     } catch (error) {
-      console.error("Fehler beim Invalidieren des Modul-Caches:", error)
+      console.error('Fehler beim Invalidieren des Moduls im Cache:', error)
     }
   }
 
   static async getModulesForCourse(courseId: string): Promise<Module[] | null> {
     try {
-      const cached = await redis.get(`${MODULE_CACHE_PREFIX}course:${courseId}`)
-      if (cached) {
-        return JSON.parse(cached)
+      const cachedModules = await redis.get(`${this.CACHE_PREFIX}course:${courseId}`)
+      if (cachedModules) {
+        return JSON.parse(cachedModules)
       }
       return null
     } catch (error) {
-      console.error("Fehler beim Abrufen der Module aus dem Cache:", error)
+      console.error('Fehler beim Abrufen der Module aus dem Cache:', error)
       return null
     }
   }
@@ -60,20 +64,20 @@ export class ModuleCache {
   static async setModulesForCourse(courseId: string, modules: Module[]): Promise<void> {
     try {
       await redis.setex(
-        `${MODULE_CACHE_PREFIX}course:${courseId}`,
-        CACHE_TTL,
+        `${this.CACHE_PREFIX}course:${courseId}`,
+        this.CACHE_TTL,
         JSON.stringify(modules)
       )
     } catch (error) {
-      console.error("Fehler beim Speichern der Module im Cache:", error)
+      console.error('Fehler beim Speichern der Module im Cache:', error)
     }
   }
 
   static async invalidateCourseModules(courseId: string): Promise<void> {
     try {
-      await redis.del(`${MODULE_CACHE_PREFIX}course:${courseId}`)
+      await redis.del(`${this.CACHE_PREFIX}course:${courseId}`)
     } catch (error) {
-      console.error("Fehler beim Invalidieren des Kurs-Modul-Caches:", error)
+      console.error('Fehler beim Invalidieren der Module im Cache:', error)
     }
   }
 }

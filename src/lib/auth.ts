@@ -4,6 +4,8 @@ import { hash, compare } from 'bcrypt';
 import { createSession, deleteSession, getSession } from './session';
 import { prisma } from './prisma';
 
+type Role = 'USER' | 'ADMIN' | 'INSTRUCTOR';
+
 const SALT_ROUNDS = 10;
 
 export const authOptions: NextAuthOptions = {
@@ -50,7 +52,7 @@ export const authOptions: NextAuthOptions = {
             id: user.id,
             name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email,
             email: user.email,
-            role: user.role.toLowerCase(),
+            role: user.role as Role,
             isPremium: false // We'll implement this later
           };
         } catch (error) {
@@ -72,7 +74,7 @@ export const authOptions: NextAuthOptions = {
     async session({ session, token }) {
       if (session.user) {
         session.user.id = token.id as string;
-        session.user.role = token.role as 'user' | 'admin';
+        session.user.role = token.role as Role;
         session.user.isPremium = token.isPremium as boolean;
       }
       return session;
@@ -108,7 +110,7 @@ export async function signUp(email: string, password: string, name: string) {
       passwordHash: hashedPassword,
       firstName,
       lastName,
-      role: 'USER',
+      role: 'USER' as Role,
     },
   });
 
@@ -154,9 +156,9 @@ export async function requireAuth() {
   return user;
 }
 
-export async function requireRole(role: string) {
+export async function requireRole(role: Role) {
   const user = await requireAuth();
-  if (user.role.toLowerCase() !== role.toLowerCase()) {
+  if (user.role !== role) {
     throw new Error('Not authorized');
   }
   return user;

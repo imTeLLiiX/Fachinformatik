@@ -1,59 +1,73 @@
-import { Suspense } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Skeleton } from "@/components/ui/skeleton"
-import dynamic from "next/dynamic"
+import dynamic from 'next/dynamic';
+import { Suspense } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
 
-// Lazy load shop components
-const ShopProducts = dynamic(() => import("@/components/shop/ShopProducts"), {
-  loading: () => (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-      {[...Array(6)].map((_, i) => (
-        <Card key={i}>
+// Lazy load components
+const SubscriptionPlans = dynamic(() => import('@/components/shop/SubscriptionPlans'), {
+  loading: () => <SubscriptionPlansSkeleton />,
+  ssr: false
+});
+
+const PaymentForm = dynamic(() => import('@/components/shop/PaymentForm'), {
+  loading: () => <PaymentFormSkeleton />,
+  ssr: false
+});
+
+function SubscriptionPlansSkeleton() {
+  return (
+    <div className="grid gap-6 md:grid-cols-3">
+      {[1, 2, 3].map((i) => (
+        <Card key={i} className="p-6">
           <CardHeader>
-            <Skeleton className="h-6 w-3/4" />
+            <Skeleton className="h-8 w-3/4" />
+            <Skeleton className="h-4 w-1/2 mt-2" />
           </CardHeader>
           <CardContent>
-            <Skeleton className="h-24 w-full" />
+            <Skeleton className="h-6 w-1/4 mb-4" />
+            <div className="space-y-2">
+              {[1, 2, 3, 4].map((j) => (
+                <Skeleton key={j} className="h-4 w-full" />
+              ))}
+            </div>
           </CardContent>
         </Card>
       ))}
     </div>
-  ),
-})
+  );
+}
 
-const ShopFilters = dynamic(() => import("@/components/shop/ShopFilters"), {
-  loading: () => (
-    <Card>
+function PaymentFormSkeleton() {
+  return (
+    <Card className="p-6">
       <CardHeader>
-        <Skeleton className="h-6 w-1/2" />
+        <Skeleton className="h-8 w-1/2" />
       </CardHeader>
-      <CardContent className="space-y-4">
-        <Skeleton className="h-10 w-full" />
-        <Skeleton className="h-10 w-full" />
-        <Skeleton className="h-10 w-full" />
+      <CardContent>
+        <div className="space-y-4">
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-10 w-full" />
+        </div>
       </CardContent>
     </Card>
-  ),
-})
+  );
+}
 
 export default function ShopPage() {
   return (
-    <div className="container py-8">
-      <h1 className="mb-8 text-3xl font-bold">Shop</h1>
+    <div className="container mx-auto py-8">
+      <h1 className="text-3xl font-bold mb-8">Premium-Features</h1>
       
-      <div className="grid gap-8 md:grid-cols-4">
-        <div className="md:col-span-1">
-          <Suspense fallback={<ShopFilters />}>
-            <ShopFilters />
-          </Suspense>
-        </div>
-        
-        <div className="md:col-span-3">
-          <Suspense fallback={<ShopProducts />}>
-            <ShopProducts />
-          </Suspense>
-        </div>
+      <Suspense fallback={<SubscriptionPlansSkeleton />}>
+        <SubscriptionPlans />
+      </Suspense>
+
+      <div className="mt-8">
+        <Suspense fallback={<PaymentFormSkeleton />}>
+          <PaymentForm />
+        </Suspense>
       </div>
     </div>
-  )
+  );
 } 

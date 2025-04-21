@@ -1,7 +1,7 @@
 # IT-Learning-Platform Architektur
 
 ## Übersicht
-Die IT-Learning-Platform ist eine moderne Webanwendung, die auf Next.js, TypeScript und MongoDB aufbaut. Die Plattform bietet interaktive Lernmodule, Fortschrittsverfolgung und ein umfangreiches Admin-Dashboard.
+Die IT-Learning-Platform ist eine moderne Webanwendung, die auf Next.js, TypeScript und MongoDB aufbaut. Die Plattform bietet interaktive Lernmodule, Fortschrittsverfolgung und ein Premium-Abonnement-System.
 
 ## Technologie-Stack
 
@@ -13,127 +13,101 @@ Die IT-Learning-Platform ist eine moderne Webanwendung, die auf Next.js, TypeScr
 - **UI-Komponenten**: 
   - Radix UI für zugängliche Komponenten
   - Shadcn/ui für vorgefertigte Komponenten
-  - Recharts für Datenvisualisierung
+  - Framer Motion für Animationen
 
 ### Backend
 - **Runtime**: Node.js
-- **Datenbank**: MongoDB
-- **Caching**: Redis
-- **Authentifizierung**: NextAuth.js
-- **Zahlungsabwicklung**: Stripe
-- **API**: RESTful API mit Next.js API Routes
+- **Datenbank**: MongoDB mit Prisma als ORM
+- **Caching**: Redis für Module und Sitzungsdaten
+- **Authentication**: NextAuth.js mit JWT
+- **Payment Processing**: Stripe
 
-## Kernkomponenten
+### Testing
+- **Unit Tests**: Vitest
+- **E2E Tests**: Playwright
+- **Code Coverage**: Istanbul
 
-### Module Management
-- Zentrale Datenstruktur für Kursinhalte
-- Topics, Exercises, Quizzes und Flashcards
-- Redis Caching für Performance
-- Validierung und Typsicherheit
+## Architektur-Entscheidungen
 
-### Benutzer-Management
-- Rollenbasierte Zugriffskontrolle (RBAC)
-- Premium-Funktionen für zahlende Nutzer
-- Fortschrittsverfolgung
-- Personalisierte Empfehlungen
+### 1. Modulare Struktur
+- Komponenten sind in logische Module aufgeteilt
+- Wiederverwendbare UI-Komponenten in `/components/ui`
+- Feature-spezifische Komponenten in `/components/[feature]`
+- API-Routen in `/app/api/[route]`
 
-### Admin Dashboard
-- Benutzerverwaltung
-- Abrechnungsverwaltung
-- Content Management
-- Analytics und Reporting
+### 2. Datenmodell
+- **User**: Zentrale Entität für Benutzerverwaltung
+- **Module**: Lerninhalte mit verschiedenen Typen (Topics, Exercises, Quiz, Flashcards)
+- **Course**: Container für Module mit Metadaten
+- **Progress**: Benutzerfortschritt und Statistiken
 
-### Zahlungssystem
-- Stripe Integration
-- Verschiedene Abonnement-Modelle
-- Sichere Zahlungsabwicklung
-- Automatische Rechnungsstellung
+### 3. Sicherheit
+- **Authentication**: JWT-basierte Authentifizierung
+- **Authorization**: Rollenbasierte Zugriffskontrolle (RBAC)
+- **Rate Limiting**: 100 Anfragen pro Minute
+- **CSP**: Strikte Content Security Policy
+- **Input Validation**: Zod für Schema-Validierung
 
-## Sicherheit
+### 4. Performance
+- **Caching**: Redis für Module und Sitzungsdaten
+- **Lazy Loading**: Dynamische Imports für Shop-Komponenten
+- **Code Splitting**: Route-basiertes Splitting
+- **Image Optimization**: Next.js Image Component
 
-### Authentifizierung & Autorisierung
-- JWT-basierte Authentifizierung
-- Rollenbasierte Zugriffskontrolle
-- Session-Management
-- Sichere Passwort-Handhabung
+### 5. Payment Integration
+- **Stripe**: Hauptanbieter für Zahlungsabwicklung
+- **Pläne**: Monatlich, Jährlich, Lifetime
+- **Webhooks**: Asynchrone Ereignisverarbeitung
+- **Error Handling**: Robuste Fehlerbehandlung
 
-### API-Sicherheit
-- Rate Limiting
-- IP-Whitelisting für Admin-Bereich
-- Content Security Policy (CSP)
-- Input/Output Sanitization
+## API-Struktur
 
-### Datenbank-Sicherheit
-- Verschlüsselte Verbindungen
-- Read-only Users
-- IP-Whitelisting
-- Regelmäßige Backups
+### REST Endpoints
+- `/api/auth/*`: Authentifizierung und Autorisierung
+- `/api/users/*`: Benutzerverwaltung
+- `/api/modules/*`: Modulverwaltung
+- `/api/courses/*`: Kursverwaltung
+- `/api/payments/*`: Zahlungsabwicklung
 
-## Performance-Optimierungen
-
-### Caching
-- Redis für Module-Caching
-- Browser-Caching
-- CDN-Integration
-- Statische Generierung wo möglich
-
-### Code-Optimierung
-- Lazy Loading
-- Code-Splitting
-- Tree Shaking
-- Bundle-Optimierung
-
-## Testing
-
-### Unit Tests
-- Vitest für schnelle Tests
-- Jest für komplexe Tests
-- Testabdeckung > 80%
-
-### E2E Tests
-- Playwright für Browser-Tests
-- Kritische Pfade
-- Performance-Metriken
-- Cross-Browser-Tests
+### WebSocket Events
+- `progress:update`: Echtzeit-Fortschrittsaktualisierungen
+- `module:complete`: Modul-Abschluss-Benachrichtigungen
 
 ## Deployment
 
+### Produktionsumgebung
+- **Hosting**: Vercel
+- **Datenbank**: MongoDB Atlas
+- **Cache**: Upstash Redis
+- **CDN**: Vercel Edge Network
+
 ### CI/CD
-- GitHub Actions
-- Automatische Tests
-- Deployment-Prüfungen
-- Versionierung
+- **Build**: GitHub Actions
+- **Tests**: Automatische Tests vor Deployment
+- **Deployment**: Automatisches Deployment nach erfolgreichen Tests
 
-### Monitoring
-- Error Tracking
-- Performance Monitoring
-- User Analytics
-- Server Monitoring
+## Monitoring
 
-## Wartung und Updates
+### Logging
+- **Application Logs**: Vercel Logs
+- **Error Tracking**: Sentry
+- **Performance Monitoring**: Vercel Analytics
 
-### Dokumentation
-- Code-Dokumentation
-- API-Dokumentation
-- Benutzerhandbücher
-- Entwickler-Guides
+### Alerts
+- **Error Rates**: Benachrichtigung bei >1% Fehlerrate
+- **Response Time**: Alert bei >3s Antwortzeit
+- **Payment Failures**: Sofortige Benachrichtigung
 
-### Backup und Recovery
-- Tägliche Backups
-- Disaster Recovery
-- Daten-Migration
-- Versionierung
-
-## Zukünftige Entwicklung
+## Zukünftige Erweiterungen
 
 ### Geplante Features
-- Mobile App
-- Offline-Modus
-- KI-gestützte Lernpfade
-- Erweiterte Analytics
+1. **Mobile App**: React Native Integration
+2. **Offline Support**: Service Worker Implementation
+3. **AI Integration**: KI-gestützte Lernempfehlungen
+4. **Community Features**: Diskussionsforen und Peer Learning
 
-### Skalierung
-- Horizontale Skalierung
-- Microservices-Architektur
-- Load Balancing
-- Datenbank-Sharding 
+### Technische Verbesserungen
+1. **GraphQL API**: Für komplexere Datenabfragen
+2. **WebRTC**: Für Live-Sessions
+3. **PWA**: Progressive Web App Funktionalität
+4. **Microservices**: Für bessere Skalierbarkeit 

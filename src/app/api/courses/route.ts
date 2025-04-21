@@ -1,14 +1,12 @@
 import { NextResponse } from 'next/server';
-import { connectToDatabase } from '@/lib/mongodb';
+import { prisma } from '@/lib/prisma';
 import { Course } from '@/types/course';
 
 export async function GET() {
   try {
     console.log('Starting GET /api/courses request');
-    const { db } = await connectToDatabase();
-    console.log('Successfully connected to database');
-
-    const courses = await db.collection('courses').find({}).toArray();
+    
+    const courses = await prisma.course.findMany();
     console.log(`Found ${courses.length} courses`);
 
     return NextResponse.json(courses);
@@ -31,21 +29,19 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    const { db } = await connectToDatabase();
-    const course: Course = await request.json();
+    const courseData: Course = await request.json();
     
     // Add timestamps
-    course.createdAt = new Date();
-    course.updatedAt = new Date();
-    
-    const result = await db.collection<Course>('courses').insertOne(course);
-    
-    if (!result.acknowledged) {
-      throw new Error('Failed to insert course');
-    }
+    const course = await prisma.course.create({
+      data: {
+        ...courseData,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      }
+    });
     
     return NextResponse.json(
-      { message: 'Course created successfully', courseId: result.insertedId },
+      { message: 'Course created successfully', courseId: course.id },
       { status: 201 }
     );
   } catch (error) {
