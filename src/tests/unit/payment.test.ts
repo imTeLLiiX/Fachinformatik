@@ -1,119 +1,130 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { PaymentService } from '@/lib/stripe';
-import { stripe } from '@/lib/stripe';
+import Stripe from 'stripe';
 
-vi.mock('@/lib/stripe', () => ({
-  stripe: {
-    checkout: {
-      sessions: {
+// Mock Stripe
+vi.mock('stripe', () => {
+  return {
+    default: vi.fn().mockImplementation(() => ({
+      checkout: {
+        sessions: {
+          create: vi.fn(),
+        },
+      },
+      customers: {
         create: vi.fn(),
       },
-    },
-    customers: {
-      create: vi.fn(),
-    },
-    prices: {
-      create: vi.fn(),
-    },
-    subscriptions: {
-      cancel: vi.fn(),
-      retrieve: vi.fn(),
-    },
-  },
-}));
+      prices: {
+        create: vi.fn(),
+      },
+      subscriptions: {
+        create: vi.fn(),
+        cancel: vi.fn(),
+        retrieve: vi.fn(),
+      },
+    })),
+  };
+});
 
 describe('PaymentService', () => {
   let paymentService: PaymentService;
+  let mockStripe: jest.Mocked<Stripe>;
 
   beforeEach(() => {
+    mockStripe = new Stripe('test_key') as jest.Mocked<Stripe>;
     paymentService = new PaymentService();
-    vi.clearAllMocks();
   });
 
   describe('createCheckoutSession', () => {
-    it('erstellt eine Checkout-Session erfolgreich', async () => {
-      const mockSession = { id: 'test_session_id' };
-      vi.mocked(stripe.checkout.sessions.create).mockResolvedValue(mockSession);
+    it('should create a checkout session successfully', async () => {
+      const mockSession = {
+        id: 'cs_test_123',
+        url: 'https://checkout.stripe.com/test',
+      };
 
-      const result = await paymentService.createCheckoutSession(
-        'test_customer_id',
-        'test_price_id',
-        'http://success.url',
-        'http://cancel.url'
-      );
+      mockStripe.checkout.sessions.create.mockResolvedValueOnce(mockSession);
+
+      const result = await paymentService.createCheckoutSession({
+        customerId: 'cus_123',
+        priceId: 'price_123',
+      });
 
       expect(result).toEqual(mockSession);
-      expect(stripe.checkout.sessions.create).toHaveBeenCalledWith({
-        customer: 'test_customer_id',
-        payment_method_types: ['card'],
-        line_items: [
-          {
-            price: 'test_price_id',
-            quantity: 1,
-          },
-        ],
+      expect(mockStripe.checkout.sessions.create).toHaveBeenCalledWith({
+        customer: 'cus_123',
+        line_items: [{ price: 'price_123', quantity: 1 }],
         mode: 'subscription',
-        success_url: 'http://success.url',
-        cancel_url: 'http://cancel.url',
+        success_url: expect.any(String),
+        cancel_url: expect.any(String),
       });
     });
 
-    it('behandelt Fehler beim Erstellen der Checkout-Session', async () => {
-      vi.mocked(stripe.checkout.sessions.create).mockRejectedValue(new Error('Test error'));
+    it('should handle errors when creating checkout session', async () => {
+      mockStripe.checkout.sessions.create.mockRejectedValueOnce(new Error('Stripe error'));
 
       await expect(
-        paymentService.createCheckoutSession(
-          'test_customer_id',
-          'test_price_id',
-          'http://success.url',
-          'http://cancel.url'
-        )
-      ).rejects.toThrow('Test error');
+        paymentService.createCheckoutSession({
+          customerId: 'cus_123',
+          priceId: 'price_123',
+        })
+      ).rejects.toThrow('Stripe error');
     });
   });
 
   describe('handleSubscription', () => {
-    it('erstellt einen Preis für ein monatliches Abonnement', async () => {
-      const mockPrice = { id: 'test_price_id' };
-      vi.mocked(stripe.prices.create).mockResolvedValue(mockPrice);
+    it('should create monthly subscription price', async () => {
+      const mockPrice = {
+        id: 'price_monthly',
+        product: 'prod_123',
+        unit_amount: 999,
+        currency: 'usd',
+        recurring: { interval: 'month' },
+      };
+
+      mockStripe.prices.create.mockResolvedValueOnce(mockPrice);
 
       const result = await paymentService.handleSubscription('monthly');
 
       expect(result).toEqual(mockPrice);
-      expect(stripe.prices.create).toHaveBeenCalledWith({
+      expect(mockStripe.prices.create).toHaveBeenCalledWith({
+        product: expect.any(String),
         unit_amount: 999,
-        currency: 'eur',
-        recurring: {
-          interval: 'month',
-        },
-        product_data: {
-          name: 'Monatlich Premium',
-        },
+        currency: 'usd',
+        recurring: { interval: 'month' },
       });
     });
 
-    it('erstellt einen Preis für ein jährliches Abonnement', async () => {
-      const mockPrice = { id: 'test_price_id' };
-      vi.mocked(stripe.prices.create).mockResolvedValue(mockPrice);
+    it('should create yearly subscription price', async () => {
+      const mockPrice = {
+        id: 'price_yearly',
+        product: 'prod_123',
+        unit_amount: 9999,
+        currency: 'usd',
+        recurring: { interval: 'year' },
+      };
+
+      mockStripe.prices.create.mockResolvedValueOnce(mockPrice);
 
       const result = await paymentService.handleSubscription('yearly');
 
       expect(result).toEqual(mockPrice);
-      expect(stripe.prices.create).toHaveBeenCalledWith({
+      expect(mockStripe.prices.create).toHaveBeenCalledWith({
+        product: expect.any(String),
         unit_amount: 9999,
-        currency: 'eur',
-        recurring: {
-          interval: 'year',
-        },
-        product_data: {
-          name: 'Jährlich Premium',
-        },
+        currency: 'usd',
+        recurring: { interval: 'year' },
       });
     });
 
-    it('erstellt einen Preis für ein Lifetime-Abonnement', async () => {
-      const mockPrice = { id: 'test_price_id' };
-      vi.mocked(stripe.prices.create).mockResolvedValue(mockPrice);
+    it('should create lifetime subscription price', async () => {
+      const mockPrice = {
+        id: 'price_lifetime',
+        product: 'prod_123',
+        unit_amount: 29999,
+        currency: 'usd',
+      };
+
+      mockStripe.prices.create.mockResolvedValueOnce(mockPrice);
 
       const result = await paymentService.handleSubscription('lifetime');
 
