@@ -1,5 +1,6 @@
-import { Module } from '@/app/courses/[courseId]/modules';
+import { Module } from '@/types/module';
 import { connectToDatabase } from './mongodb';
+import { prisma } from '@/lib/prisma';
 
 /**
  * Modul-Manager für Plug-and-Play Modulintegration

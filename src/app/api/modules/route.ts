@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { moduleManager } from '@/lib/moduleManager';
-import { Module } from '@/app/courses/[courseId]/modules';
+import { Module } from '@/types/module';
 import { prisma } from '@/lib/prisma';
 
 export async function GET(request: Request) {
