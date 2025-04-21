@@ -1,6 +1,6 @@
-import { Module } from '@/types/module';
+import { prisma } from './prisma';
+import type { Module } from '@prisma/client';
 import { connectToDatabase } from './mongodb';
-import { prisma } from '@/lib/prisma';
 
 /**
  * Modul-Manager für Plug-and-Play Modulintegration
@@ -8,6 +8,7 @@ import { prisma } from '@/lib/prisma';
  */
 export class ModuleManager {
   private static instance: ModuleManager;
+  private moduleData: Module | null = null;
   private modulesCache: Map<string, Module[]> = new Map();
   private lastFetchTime: Map<string, number> = new Map();
   private cacheExpiryTime = 5 * 60 * 1000; // 5 Minuten
@@ -57,25 +58,25 @@ export class ModuleManager {
 
   /**
    * Speichert ein neues Modul in der Datenbank
-   * @param module Das zu speichernde Modul
+   * @param moduleData Das zu speichernde Modul
    * @returns Promise mit der ID des gespeicherten Moduls
    */
-  public async saveModule(module: Module): Promise<string> {
+  public async saveModule(moduleData: Module): Promise<string> {
     try {
       const { db } = await connectToDatabase();
       
       // Füge Zeitstempel hinzu
-      module.createdAt = new Date();
-      module.updatedAt = new Date();
+      moduleData.createdAt = new Date();
+      moduleData.updatedAt = new Date();
       
-      const result = await db.collection('modules').insertOne(module);
+      const result = await db.collection('modules').insertOne(moduleData);
       
       if (!result.acknowledged) {
         throw new Error('Fehler beim Speichern des Moduls');
       }
       
       // Aktualisiere Cache
-      this.invalidateCache(module.courseId);
+      this.invalidateCache(moduleData.courseId);
       
       return result.insertedId.toString();
     } catch (error) {
@@ -92,28 +93,15 @@ export class ModuleManager {
    */
   public async updateModule(moduleId: string, updates: Partial<Module>): Promise<Module | null> {
     try {
-      const { db } = await connectToDatabase();
-      
-      // Füge Zeitstempel hinzu
-      updates.updatedAt = new Date();
-      
-      const result = await db.collection('modules').findOneAndUpdate(
-        { id: moduleId },
-        { $set: updates },
-        { returnDocument: 'after' }
-      );
-      
-      if (!result) {
-        return null;
-      }
-      
-      // Aktualisiere Cache
-      this.invalidateCache(result.courseId);
-      
-      return result as Module;
+      const moduleData = await prisma.module.update({
+        where: { id: moduleId },
+        data: updates,
+      });
+      this.moduleData = moduleData;
+      return moduleData;
     } catch (error) {
-      console.error(`Fehler beim Aktualisieren des Moduls ${moduleId}:`, error);
-      throw error;
+      console.error('Error updating module:', error);
+      return null;
     }
   }
 
@@ -127,16 +115,16 @@ export class ModuleManager {
       const { db } = await connectToDatabase();
       
       // Hole das Modul, um die courseId zu erhalten
-      const module = await db.collection('modules').findOne({ id: moduleId });
+      const moduleData = await db.collection('modules').findOne({ id: moduleId });
       
-      if (!module) {
+      if (!moduleData) {
         return false;
       }
       
       const result = await db.collection('modules').deleteOne({ id: moduleId });
       
       // Aktualisiere Cache
-      this.invalidateCache(module.courseId);
+      this.invalidateCache(moduleData.courseId);
       
       return result.deletedCount === 1;
     } catch (error) {
@@ -164,6 +152,22 @@ export class ModuleManager {
   private invalidateCache(courseId: string): void {
     this.lastFetchTime.delete(courseId);
     this.modulesCache.delete(courseId);
+  }
+
+  public async loadModule(moduleId: string): Promise<Module | null> {
+    try {
+      this.moduleData = await prisma.module.findUnique({
+        where: { id: moduleId },
+      });
+      return this.moduleData;
+    } catch (error) {
+      console.error('Error loading module:', error);
+      return null;
+    }
+  }
+
+  public getCurrentModule(): Module | null {
+    return this.moduleData;
   }
 }
 

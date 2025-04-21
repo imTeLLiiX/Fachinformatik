@@ -95,7 +95,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Setze den Beispielcode beim Laden der Seite
   useEffect(() => {
     setCode(exampleCode[language as keyof typeof exampleCode]);
-  }, [language]);
+  }, [language, exampleCode]);
 
   // Aktualisiere die Vorschau, wenn sich der Code ändert
   useEffect(() => {

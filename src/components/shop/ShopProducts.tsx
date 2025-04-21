@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
+import Image from 'next/image'
 
 interface Product {
   id: string
@@ -56,9 +57,11 @@ export default function ShopProducts() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="aspect-video overflow-hidden rounded-lg bg-muted">
-              <img
-                src={product.image}
+              <Image
+                src={product.image || '/placeholder.jpg'}
                 alt={product.title}
+                width={400}
+                height={300}
                 className="h-full w-full object-cover"
               />
             </div>

@@ -15,6 +15,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { UserDocument, UserUpdate } from '@/models/User';
+import { SubscriptionPlan } from '@/types/subscription';
 
 export default function UserEditPage({ params }: { params: { id: string } }) {
   const { data: session, status } = useSession();
@@ -138,8 +139,15 @@ export default function UserEditPage({ params }: { params: { id: string } }) {
             <div className="grid w-full items-center gap-1.5">
               <Label htmlFor="subscription">Abonnement</Label>
               <Select
-                value={formData.subscription}
-                onValueChange={(value) => setFormData({ ...formData, subscription: value as UserDocument['subscription'] })}
+                value={formData.subscription?.plan || 'basic'}
+                onValueChange={(value: SubscriptionPlan) => setFormData({ 
+                  ...formData, 
+                  subscription: {
+                    plan: value,
+                    startDate: new Date(),
+                    endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 days from now
+                  }
+                })}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Wählen Sie ein Abonnement" />

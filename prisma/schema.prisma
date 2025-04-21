@@ -20,32 +20,51 @@ model User {
   lastName           String?
   passwordHash       String
   role               Role      @default(USER)
-  image              String?
-  stripeCustomerId   String?   @unique
-  stripeSubscriptionId String?
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
+  isVerified         Boolean   @default(false)
+  verifyToken        String?   @unique
+  resetToken         String?   @unique
+  resetTokenExp      DateTime?
+  courses            Course[]  @relation("UserCourses")
+  enrollments        Enrollment[]
 }
 
 model Course {
-  id          String   @id @default(cuid()) @map("_id")
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
   title       String
-  description String
-  level       String
-  duration    Int
+  description String?
+  imageUrl    String?
+  price       Float?
+  isPublished Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  authorId    String    @db.ObjectId
+  author      User      @relation("UserCourses", fields: [authorId], references: [id])
   modules     Module[]
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  enrollments Enrollment[]
 }
 
 model Module {
   id          String   @id @default(cuid()) @map("_id")
   title       String
   description String
-  content     Json
+  content     String
   order       Int
   courseId    String
   course      Course   @relation(fields: [courseId], references: [id])
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+}
+
+model Enrollment {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String   @db.ObjectId
+  courseId  String   @db.ObjectId
+  user      User     @relation(fields: [userId], references: [id])
+  course    Course   @relation(fields: [courseId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, courseId])
 } 

@@ -1,10 +1,10 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { getCachedModules, setCachedModules, invalidateAllModulesCache } from '@/lib/redis';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
     if (!session) {
@@ -41,7 +41,7 @@ export async function GET() {
   }
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
     if (!session || session.user.role !== 'ADMIN') {
@@ -49,7 +49,7 @@ export async function POST(request: Request) {
     }
 
     const data = await request.json();
-    const module = await prisma.module.create({
+    const moduleData = await prisma.module.create({
       data: {
         title: data.title,
         description: data.description,
@@ -70,7 +70,7 @@ export async function POST(request: Request) {
     // Invalidate the modules cache
     await invalidateAllModulesCache();
 
-    return NextResponse.json(module);
+    return NextResponse.json(moduleData);
   } catch (error) {
     console.error('Error creating module:', error);
     return NextResponse.json(

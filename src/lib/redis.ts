@@ -1,83 +1,154 @@
 import { Redis } from '@upstash/redis'
 import { Ratelimit } from '@upstash/ratelimit'
 
-if (!process.env.UPSTASH_REDIS_REST_URL || !process.env.UPSTASH_REDIS_REST_TOKEN) {
-  throw new Error('Redis environment variables are not set')
+// In-memory cache für Fallback
+const inMemoryCache = new Map<string, { data: any; expiry: number }>();
+const DEFAULT_TTL = 60 * 60 * 1000; // 1 hour in milliseconds
+
+// Fallback-Funktionen für In-Memory Cache
+const getInMemoryData = async <T>(key: string): Promise<T | null> => {
+  const item = inMemoryCache.get(key);
+  if (!item) return null;
+  
+  if (Date.now() > item.expiry) {
+    inMemoryCache.delete(key);
+    return null;
+  }
+  
+  return item.data as T;
+};
+
+const setInMemoryData = async <T>(key: string, data: T, ttl = DEFAULT_TTL): Promise<void> => {
+  inMemoryCache.set(key, {
+    data,
+    expiry: Date.now() + ttl
+  });
+};
+
+const invalidateInMemoryCache = async (key: string): Promise<void> => {
+  inMemoryCache.delete(key);
+};
+
+// Dummy rate limiter für Fallback
+const dummyRateLimiter = {
+  limit: async (identifier: string) => {
+    return {
+      success: true,
+      limit: 10,
+      remaining: 9,
+      reset: Date.now() + 10000
+    };
+  }
+};
+
+// Redis-Instanz und Rate Limiter
+let redis: Redis | null = null;
+let ratelimit: Ratelimit | typeof dummyRateLimiter = dummyRateLimiter;
+
+// Initialisiere Redis, wenn die Umgebungsvariablen gesetzt sind
+if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
+  try {
+    redis = new Redis({
+      url: process.env.UPSTASH_REDIS_REST_URL,
+      token: process.env.UPSTASH_REDIS_REST_TOKEN,
+    });
+    
+    ratelimit = new Ratelimit({
+      redis,
+      limiter: Ratelimit.slidingWindow(10, '10 s'),
+      analytics: true,
+    });
+    
+    console.log('Redis initialized successfully');
+  } catch (error) {
+    console.error('Failed to initialize Redis:', error);
+  }
+} else {
+  console.warn('Redis environment variables are not set. Using in-memory cache instead.');
 }
 
-const redis = new Redis({
-  url: process.env.UPSTASH_REDIS_REST_URL,
-  token: process.env.UPSTASH_REDIS_REST_TOKEN,
-})
-
-// Create a new ratelimiter that allows 10 requests per 10 seconds
-export const ratelimit = new Ratelimit({
-  redis,
-  limiter: Ratelimit.slidingWindow(10, '10 s'),
-  analytics: true,
-})
-
 // Cache configuration
-export const CACHE_TTL = 86400 // 24 hours in seconds
+const CACHE_TTL = 86400; // 24 hours in seconds
 
+// Exportierte Funktionen
 export async function getCachedData<T>(key: string): Promise<T | null> {
-  const data = await redis.get<T>(key)
-  return data
+  if (redis) {
+    try {
+      return await redis.get<T>(key);
+    } catch (error) {
+      console.error('Redis get error:', error);
+      return getInMemoryData<T>(key);
+    }
+  }
+  return getInMemoryData<T>(key);
 }
 
 export async function setCachedData<T>(key: string, data: T): Promise<void> {
-  await redis.set(key, data, { ex: CACHE_TTL })
+  if (redis) {
+    try {
+      await redis.set(key, data, { ex: CACHE_TTL });
+      return;
+    } catch (error) {
+      console.error('Redis set error:', error);
+    }
+  }
+  await setInMemoryData(key, data, CACHE_TTL * 1000);
 }
 
 export async function invalidateCache(key: string): Promise<void> {
-  await redis.del(key)
+  if (redis) {
+    try {
+      await redis.del(key);
+      return;
+    } catch (error) {
+      console.error('Redis del error:', error);
+    }
+  }
+  await invalidateInMemoryCache(key);
 }
 
-const MODULE_CACHE_PREFIX = 'module:'
-const MODULES_LIST_CACHE_KEY = 'modules:list'
+const MODULE_CACHE_PREFIX = 'module:';
+const MODULES_LIST_CACHE_KEY = 'modules:list';
 
 export async function getCachedModule(moduleId: string) {
-  const cachedData = await redis.get(`module:${moduleId}`);
-  return cachedData;
+  return getCachedData(`module:${moduleId}`);
 }
 
 export async function setCachedModule(moduleId: string, moduleData: any) {
-  await redis.set(`module:${moduleId}`, moduleData, {
-    ex: CACHE_TTL
-  });
+  return setCachedData(`module:${moduleId}`, moduleData);
 }
 
 export async function invalidateModuleCache(moduleId: string) {
-  await redis.del(`module:${moduleId}`);
+  return invalidateCache(`module:${moduleId}`);
 }
 
 export async function getCachedModules() {
-  const cachedData = await redis.get('modules:all');
-  return cachedData;
+  return getCachedData('modules:all');
 }
 
 export async function setCachedModules(modules: any[]) {
-  await redis.set('modules:all', modules, {
-    ex: CACHE_TTL
-  });
+  return setCachedData('modules:all', modules);
 }
 
 export async function invalidateAllModulesCache() {
-  await redis.del('modules:all');
+  return invalidateCache('modules:all');
 }
 
 export async function getCachedModulesList(): Promise<any> {
-  const data = await redis.get<string>(MODULES_LIST_CACHE_KEY)
-  return data ? JSON.parse(data) : null
+  const data = await getCachedData<string>(MODULES_LIST_CACHE_KEY);
+  return data ? JSON.parse(data) : null;
 }
 
 export async function setCachedModulesList(data: any): Promise<void> {
-  await redis.set(MODULES_LIST_CACHE_KEY, JSON.stringify(data))
-  await redis.expire(MODULES_LIST_CACHE_KEY, CACHE_TTL)
+  await setCachedData(MODULES_LIST_CACHE_KEY, JSON.stringify(data));
 }
 
 export async function invalidateModulesListCache(): Promise<void> {
-  await redis.del(MODULES_LIST_CACHE_KEY)
+  return invalidateCache(MODULES_LIST_CACHE_KEY);
 }
 
-export default redis 
+// Exportiere den Rate Limiter
+export { ratelimit };
+
+// Exportiere Redis oder den In-Memory Cache als Default
+export default redis || inMemoryCache; 

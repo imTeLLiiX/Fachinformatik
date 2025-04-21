@@ -12,7 +12,7 @@ jest.mock('framer-motion', () => ({
       <button className={className} {...props}>{children}</button>
     ),
   },
-  AnimatePresence: ({ children }: React.PropsWithChildren<{}>) => <>{children}</>,
+  AnimatePresence: ({ children }: React.PropsWithChildren<Record<string, never>>) => <>{children}</>,
 }));
 
 // Sample notification data

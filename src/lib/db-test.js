@@ -1,47 +1,44 @@
-const { PrismaClient } = require('@prisma/client');
+import { MongoClient } from 'mongodb';
 
-const prisma = new PrismaClient();
+const uri = process.env.MONGODB_URI || 'mongodb://localhost:27017';
+const client = new MongoClient(uri);
 
-async function testMongoDBConnection() {
+async function testConnection() {
   try {
-    // Test: Create a user
-    const newUser = await prisma.user.create({
-      data: {
-        email: 'test@example.com',
-        passwordHash: 'test123',
-        firstName: 'Test',
-        lastName: 'User',
-        role: 'USER',
-      },
-    });
-    console.log('Created user:', newUser);
+    await client.connect();
+    console.log('Connected to MongoDB');
 
-    // Test: Read the user
-    const foundUser = await prisma.user.findUnique({
-      where: { email: 'test@example.com' },
-    });
-    console.log('Found user:', foundUser);
+    const db = client.db('test');
+    const collection = db.collection('users');
 
-    // Test: Update the user
-    const updatedUser = await prisma.user.update({
-      where: { email: 'test@example.com' },
-      data: { firstName: 'Updated' },
+    // Test insert
+    const result = await collection.insertOne({
+      name: 'Test User',
+      email: 'test@example.com',
+      createdAt: new Date()
     });
-    console.log('Updated user:', updatedUser);
+    console.log('Inserted document:', result);
 
-    // Test: Delete the user
-    const deletedUser = await prisma.user.delete({
-      where: { email: 'test@example.com' },
-    });
-    console.log('Deleted user:', deletedUser);
+    // Test find
+    const user = await collection.findOne({ name: 'Test User' });
+    console.log('Found user:', user);
 
-    console.log('All MongoDB operations successful!');
+    // Test update
+    const updateResult = await collection.updateOne(
+      { name: 'Test User' },
+      { $set: { email: 'updated@example.com' } }
+    );
+    console.log('Updated document:', updateResult);
+
+    // Test delete
+    const deleteResult = await collection.deleteOne({ name: 'Test User' });
+    console.log('Deleted document:', deleteResult);
+
   } catch (error) {
-    console.error('Error testing MongoDB connection:', error);
+    console.error('Error:', error);
   } finally {
-    await prisma.$disconnect();
+    await client.close();
   }
 }
 
-// Run the test
-testMongoDBConnection(); 
+testConnection(); 
