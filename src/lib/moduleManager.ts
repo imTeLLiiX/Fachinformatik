@@ -1,6 +1,5 @@
 import { prisma } from './prisma';
-import type { Module } from '@prisma/client';
-import { connectToDatabase } from './mongodb';
+import { Module } from '@/models/Module';
 
 /**
  * Modul-Manager für Plug-and-Play Modulintegration
@@ -39,10 +38,10 @@ export class ModuleManager {
       }
 
       // Lade Module aus der Datenbank
-      const { db } = await connectToDatabase();
-      const modules = await db.collection('modules')
-        .find({ courseId })
-        .toArray() as Module[];
+      const modules = await prisma.module.findMany({
+        where: { courseId },
+        orderBy: { order: 'asc' },
+      });
 
       // Aktualisiere Cache
       this.modulesCache.set(courseId, modules);
@@ -63,22 +62,18 @@ export class ModuleManager {
    */
   public async saveModule(moduleData: Module): Promise<string> {
     try {
-      const { db } = await connectToDatabase();
+      const result = await prisma.module.create({
+        data: moduleData,
+      });
       
-      // Füge Zeitstempel hinzu
-      moduleData.createdAt = new Date();
-      moduleData.updatedAt = new Date();
-      
-      const result = await db.collection('modules').insertOne(moduleData);
-      
-      if (!result.acknowledged) {
+      if (!result.id) {
         throw new Error('Fehler beim Speichern des Moduls');
       }
       
       // Aktualisiere Cache
       this.invalidateCache(moduleData.courseId);
       
-      return result.insertedId.toString();
+      return result.id.toString();
     } catch (error) {
       console.error('Fehler beim Speichern des Moduls:', error);
       throw error;
@@ -112,21 +107,14 @@ export class ModuleManager {
    */
   public async deleteModule(moduleId: string): Promise<boolean> {
     try {
-      const { db } = await connectToDatabase();
-      
-      // Hole das Modul, um die courseId zu erhalten
-      const moduleData = await db.collection('modules').findOne({ id: moduleId });
-      
-      if (!moduleData) {
-        return false;
-      }
-      
-      const result = await db.collection('modules').deleteOne({ id: moduleId });
+      const result = await prisma.module.delete({
+        where: { id: moduleId },
+      });
       
       // Aktualisiere Cache
-      this.invalidateCache(moduleData.courseId);
+      this.invalidateCache(this.moduleData?.courseId || '');
       
-      return result.deletedCount === 1;
+      return result.id !== null;
     } catch (error) {
       console.error(`Fehler beim Löschen des Moduls ${moduleId}:`, error);
       throw error;
@@ -172,4 +160,16 @@ export class ModuleManager {
 }
 
 // Exportiere eine Instanz des ModuleManagers
-export const moduleManager = ModuleManager.getInstance(); 
+export const moduleManager = ModuleManager.getInstance();
+
+export async function getModule(slug: string): Promise<Module | null> {
+  return prisma.module.findUnique({
+    where: { slug },
+  });
+}
+
+export async function getAllModules(): Promise<Module[]> {
+  return prisma.module.findMany({
+    orderBy: { order: 'asc' },
+  });
+} 

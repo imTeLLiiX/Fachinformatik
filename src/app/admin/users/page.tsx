@@ -5,58 +5,18 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Search, Plus, Edit, Trash2 } from 'lucide-react';
 import { useState } from 'react';
-import { connectToDatabase } from '@/lib/mongodb';
+import { prisma } from '@/lib/prisma';
 
 // TODO: Replace with real data from database
-const users = [
-  {
-    id: '1',
-    name: 'Max Mustermann',
-    email: 'max@example.com',
-    role: 'learner',
-    status: 'active',
-    lastLogin: '2024-02-20',
-    subscription: 'basic'
-  },
-  {
-    id: '2',
-    name: 'Anna Admin',
-    email: 'anna@example.com',
-    role: 'content-admin',
-    status: 'active',
-    lastLogin: '2024-02-19',
-    subscription: 'premium'
-  },
-  {
-    id: '3',
-    name: 'Super Admin',
-    email: 'admin@example.com',
-    role: 'super-admin',
-    status: 'active',
-    lastLogin: '2024-02-18',
-    subscription: 'lifetime'
-  },
-  // Add more mock users as needed
-];
-
 const roles = [
   { id: 'learner', name: 'Lernender', color: 'bg-blue-100 text-blue-800' },
   { id: 'content-admin', name: 'Content Admin', color: 'bg-purple-100 text-purple-800' },
   { id: 'super-admin', name: 'Super Admin', color: 'bg-red-100 text-red-800' }
 ];
 
-export default function UsersPage() {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedRole, setSelectedRole] = useState('all');
-
-  const filteredUsers = users.filter(user => {
-    const matchesSearch = 
-      user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesRole = selectedRole === 'all' || user.role === selectedRole;
-    
-    return matchesSearch && matchesRole;
+export default async function UsersPage() {
+  const users = await prisma.user.findMany({
+    orderBy: { createdAt: 'desc' },
   });
 
   return (
@@ -83,14 +43,10 @@ export default function UsersPage() {
               <Input
                 placeholder="Benutzer suchen..."
                 className="pl-8"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
             <select 
               className="border rounded-md px-3 py-2"
-              value={selectedRole}
-              onChange={(e) => setSelectedRole(e.target.value)}
             >
               <option value="all">Alle Rollen</option>
               {roles.map(role => (
@@ -113,7 +69,7 @@ export default function UsersPage() {
                 </tr>
               </thead>
               <tbody>
-                {filteredUsers.map((user) => (
+                {users.map((user) => (
                   <tr key={user.id} className="border-b">
                     <td className="py-3 px-4">{user.name}</td>
                     <td className="py-3 px-4">{user.email}</td>
