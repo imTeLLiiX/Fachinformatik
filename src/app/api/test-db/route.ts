@@ -1,29 +1,26 @@
 import { NextResponse } from 'next/server';
-import clientPromise from '@/lib/mongodb';
+import { prisma } from '@/lib/prisma';
 
 export async function GET() {
   try {
-    const client = await clientPromise;
-    const db = client.db(process.env.MONGODB_DB || 'it-learning-platform');
-    
-    // Test the connection
-    await db.command({ ping: 1 });
-    
-    // Count users
-    const userCount = await db.collection('users').countDocuments();
+    // Test database connection
+    await prisma.$connect();
     
     return NextResponse.json({ 
-      status: 'ok', 
-      message: 'Database connection successful',
-      userCount,
-      timestamp: new Date().toISOString() 
+      status: 'success',
+      message: 'Database connection successful'
     });
   } catch (error) {
-    console.error('Database test failed:', error);
-    return NextResponse.json({ 
-      status: 'error', 
-      message: error instanceof Error ? error.message : 'Unknown error',
-      timestamp: new Date().toISOString() 
-    }, { status: 500 });
+    console.error('Database connection error:', error);
+    return NextResponse.json(
+      { 
+        status: 'error',
+        message: 'Database connection failed',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      },
+      { status: 500 }
+    );
+  } finally {
+    await prisma.$disconnect();
   }
 } 

@@ -1,61 +1,61 @@
-import { headers } from 'next/headers';
 import { NextResponse } from 'next/server';
-import { stripe } from '@/lib/stripe';
-import { connectToDatabase } from '@/lib/mongodb';
+import { headers } from 'next/headers';
+import Stripe from 'stripe';
+import { prisma } from '@/lib/prisma';
 
-export async function POST(req: Request) {
-  const body = await req.text();
-  const signature = headers().get('stripe-signature');
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+  apiVersion: '2025-03-31.basil'
+});
 
-  if (!signature || !process.env.STRIPE_WEBHOOK_SECRET) {
-    return new NextResponse('Missing stripe signature or webhook secret', { status: 400 });
-  }
+export async function POST(request: Request) {
+  const body = await request.text();
+  const signature = headers().get('stripe-signature')!;
 
   try {
     const event = stripe.webhooks.constructEvent(
       body,
       signature,
-      process.env.STRIPE_WEBHOOK_SECRET
+      process.env.STRIPE_WEBHOOK_SECRET!
     );
 
-    const { db } = await connectToDatabase();
-
     switch (event.type) {
-      case 'customer.subscription.created':
-      case 'customer.subscription.updated':
-        const subscription = event.data.object;
-        await db.collection('users').updateOne(
-          { stripeCustomerId: subscription.customer },
-          {
-            $set: {
-              subscriptionId: subscription.id,
-              subscriptionStatus: subscription.status,
-              subscriptionPlan: subscription.items.data[0].price.id,
-              updatedAt: new Date(),
-            },
-          }
-        );
+      case 'checkout.session.completed': {
+        const session = event.data.object as Stripe.Checkout.Session;
+        
+        // Update user subscription status
+        if (session.customer) {
+          await prisma.user.update({
+            where: { email: session.customer_email! },
+            data: {
+              isPremium: true,
+              subscriptionId: session.subscription as string
+            }
+          });
+        }
         break;
-
-      case 'customer.subscription.deleted':
-        const deletedSubscription = event.data.object;
-        await db.collection('users').updateOne(
-          { stripeCustomerId: deletedSubscription.customer },
-          {
-            $set: {
-              subscriptionId: null,
-              subscriptionStatus: 'canceled',
-              subscriptionPlan: null,
-              updatedAt: new Date(),
-            },
+      }
+      
+      case 'customer.subscription.deleted': {
+        const subscription = event.data.object as Stripe.Subscription;
+        
+        // Update user subscription status
+        await prisma.user.update({
+          where: { subscriptionId: subscription.id },
+          data: {
+            isPremium: false,
+            subscriptionId: null
           }
-        );
+        });
         break;
+      }
     }
 
-    return new NextResponse(null, { status: 200 });
+    return NextResponse.json({ received: true });
   } catch (error) {
-    console.error('Error processing webhook:', error);
-    return new NextResponse('Webhook error', { status: 400 });
+    console.error('Webhook error:', error);
+    return NextResponse.json(
+      { error: 'Webhook handler failed' },
+      { status: 400 }
+    );
   }
 } 
