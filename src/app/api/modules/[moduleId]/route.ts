@@ -3,16 +3,16 @@ import { prisma } from '@/lib/prisma';
 
 interface RouteParams {
   params: {
-    moduleId: string;
+    id: string;
   };
 }
 
 export async function GET(request: Request, { params }: RouteParams) {
   try {
-    const { moduleId } = params;
+    const { id } = params;
 
     const module = await prisma.module.findUnique({
-      where: { id: moduleId }
+      where: { id: id }
     });
 
     if (!module) {
@@ -34,7 +34,7 @@ export async function GET(request: Request, { params }: RouteParams) {
 
 export async function PUT(request: Request, { params }: RouteParams) {
   try {
-    const { moduleId } = params;
+    const { id } = params;
     const updateData = await request.json();
     const { title, description, content, order } = updateData;
 
@@ -46,7 +46,7 @@ export async function PUT(request: Request, { params }: RouteParams) {
     }
 
     const module = await prisma.module.update({
-      where: { id: moduleId },
+      where: { id: id },
       data: {
         title,
         description,
@@ -68,10 +68,10 @@ export async function PUT(request: Request, { params }: RouteParams) {
 
 export async function DELETE(request: Request, { params }: RouteParams) {
   try {
-    const { moduleId } = params;
+    const { id } = params;
 
     await prisma.module.delete({
-      where: { id: moduleId }
+      where: { id: id }
     });
 
     return NextResponse.json(
