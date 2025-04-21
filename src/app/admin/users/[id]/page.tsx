@@ -15,7 +15,20 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { UserDocument, UserUpdate } from '@/models/User';
-import { SubscriptionPlan } from '@/types/subscription';
+
+// Define our own types that match the Prisma schema
+type Role = 'ADMIN' | 'USER';
+type SubscriptionStatus = 'ACTIVE' | 'CANCELED' | 'PAST_DUE' | 'UNPAID' | 'TRIAL';
+type SubscriptionTier = 'FREE' | 'BASIC' | 'PREMIUM';
+
+type FormData = {
+  firstName: string;
+  lastName: string;
+  email: string;
+  role: Role;
+  subscriptionStatus: SubscriptionStatus;
+  subscriptionTier: SubscriptionTier;
+};
 
 export default function UserEditPage({ params }: { params: { id: string } }) {
   const { data: session, status } = useSession();
@@ -23,7 +36,14 @@ export default function UserEditPage({ params }: { params: { id: string } }) {
   const [user, setUser] = useState<UserDocument | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [formData, setFormData] = useState<UserUpdate>({});
+  const [formData, setFormData] = useState<FormData>({
+    firstName: '',
+    lastName: '',
+    email: '',
+    role: 'USER',
+    subscriptionStatus: 'UNPAID',
+    subscriptionTier: 'FREE'
+  });
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -38,7 +58,14 @@ export default function UserEditPage({ params }: { params: { id: string } }) {
         if (!response.ok) throw new Error('Failed to fetch user');
         const data = await response.json();
         setUser(data);
-        setFormData(data);
+        setFormData({
+          firstName: data.firstName,
+          lastName: data.lastName,
+          email: data.email,
+          role: data.role,
+          subscriptionStatus: data.subscriptionStatus,
+          subscriptionTier: data.subscriptionTier
+        });
       } catch (err) {
         setError(err instanceof Error ? err.message : 'An error occurred');
       } finally {
@@ -84,11 +111,20 @@ export default function UserEditPage({ params }: { params: { id: string } }) {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid w-full items-center gap-1.5">
-              <Label htmlFor="name">Name</Label>
+              <Label htmlFor="firstName">Vorname</Label>
               <Input
-                id="name"
-                value={formData.name || ''}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                id="firstName"
+                value={formData.firstName}
+                onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+              />
+            </div>
+
+            <div className="grid w-full items-center gap-1.5">
+              <Label htmlFor="lastName">Nachname</Label>
+              <Input
+                id="lastName"
+                value={formData.lastName}
+                onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
               />
             </div>
 
@@ -97,7 +133,7 @@ export default function UserEditPage({ params }: { params: { id: string } }) {
               <Input
                 id="email"
                 type="email"
-                value={formData.email || ''}
+                value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
               />
             </div>
@@ -106,56 +142,50 @@ export default function UserEditPage({ params }: { params: { id: string } }) {
               <Label htmlFor="role">Rolle</Label>
               <Select
                 value={formData.role}
-                onValueChange={(value) => setFormData({ ...formData, role: value as UserDocument['role'] })}
+                onValueChange={(value) => setFormData({ ...formData, role: value as Role })}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Wählen Sie eine Rolle" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="user">Benutzer</SelectItem>
-                  <SelectItem value="admin">Administrator</SelectItem>
-                  <SelectItem value="super-admin">Super Admin</SelectItem>
+                  <SelectItem value="USER">Benutzer</SelectItem>
+                  <SelectItem value="ADMIN">Administrator</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             <div className="grid w-full items-center gap-1.5">
-              <Label htmlFor="status">Status</Label>
+              <Label htmlFor="subscriptionStatus">Abonnement-Status</Label>
               <Select
-                value={formData.status}
-                onValueChange={(value) => setFormData({ ...formData, status: value as UserDocument['status'] })}
+                value={formData.subscriptionStatus}
+                onValueChange={(value) => setFormData({ ...formData, subscriptionStatus: value as SubscriptionStatus })}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Wählen Sie einen Status" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="active">Aktiv</SelectItem>
-                  <SelectItem value="inactive">Inaktiv</SelectItem>
-                  <SelectItem value="suspended">Gesperrt</SelectItem>
+                  <SelectItem value="ACTIVE">Aktiv</SelectItem>
+                  <SelectItem value="CANCELED">Gekündigt</SelectItem>
+                  <SelectItem value="PAST_DUE">Überfällig</SelectItem>
+                  <SelectItem value="UNPAID">Nicht bezahlt</SelectItem>
+                  <SelectItem value="TRIAL">Testphase</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             <div className="grid w-full items-center gap-1.5">
-              <Label htmlFor="subscription">Abonnement</Label>
+              <Label htmlFor="subscriptionTier">Abonnement-Tarif</Label>
               <Select
-                value={formData.subscription?.plan || 'basic'}
-                onValueChange={(value: SubscriptionPlan) => setFormData({ 
-                  ...formData, 
-                  subscription: {
-                    plan: value,
-                    startDate: new Date(),
-                    endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 days from now
-                  }
-                })}
+                value={formData.subscriptionTier}
+                onValueChange={(value) => setFormData({ ...formData, subscriptionTier: value as SubscriptionTier })}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Wählen Sie ein Abonnement" />
+                  <SelectValue placeholder="Wählen Sie einen Tarif" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="basic">Basic</SelectItem>
-                  <SelectItem value="premium">Premium</SelectItem>
-                  <SelectItem value="enterprise">Enterprise</SelectItem>
+                  <SelectItem value="FREE">Kostenlos</SelectItem>
+                  <SelectItem value="BASIC">Basic</SelectItem>
+                  <SelectItem value="PREMIUM">Premium</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -163,16 +193,10 @@ export default function UserEditPage({ params }: { params: { id: string } }) {
         </Card>
 
         <div className="flex justify-end space-x-4">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => router.push('/admin/users')}
-          >
+          <Button variant="outline" onClick={() => router.push('/admin/users')}>
             Abbrechen
           </Button>
-          <Button type="submit">
-            Speichern
-          </Button>
+          <Button type="submit">Speichern</Button>
         </div>
       </form>
     </div>

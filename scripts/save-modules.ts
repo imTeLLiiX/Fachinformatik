@@ -36,9 +36,24 @@ async function saveModules() {
     await prisma.module.deleteMany({});
     console.log('Deleted existing modules');
     
+    // Transform modules to match Prisma schema
+    const transformedModules = courseModules.map((module, index) => ({
+      title: module.title,
+      description: module.description,
+      content: JSON.stringify(module.topics),
+      order: index + 1,
+      slug: module.title.toLowerCase().replace(/\s+/g, '-'),
+      courseId: module.courseId,
+      duration: module.duration,
+      topics: module.topics,
+      exercises: module.exercises,
+      quiz: module.quiz,
+      flashcards: module.flashcards
+    }));
+    
     // Insert the modules
     const result = await prisma.module.createMany({
-      data: courseModules,
+      data: transformedModules,
     });
     
     console.log(`Successfully inserted ${result.count} modules`);
