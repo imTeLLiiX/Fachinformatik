@@ -1,113 +1,109 @@
-# IT-Learning-Platform Architektur
+# IT Learning Platform Architecture
 
-## Übersicht
-Die IT-Learning-Platform ist eine moderne Webanwendung, die auf Next.js, TypeScript und MongoDB aufbaut. Die Plattform bietet interaktive Lernmodule, Fortschrittsverfolgung und ein Premium-Abonnement-System.
+## Overview
+This document outlines the architecture and key components of the IT Learning Platform, including recent optimizations and security measures.
 
-## Technologie-Stack
+## Performance Optimizations
 
-### Frontend
-- **Framework**: Next.js 14 mit App Router
-- **Sprache**: TypeScript
-- **Styling**: Tailwind CSS mit benutzerdefinierten Komponenten
-- **State Management**: React Hooks
-- **UI-Komponenten**: 
-  - Radix UI für zugängliche Komponenten
-  - Shadcn/ui für vorgefertigte Komponenten
-  - Framer Motion für Animationen
+### Lazy Loading
+- Shop components are lazy loaded using Next.js dynamic imports
+- Course components use dynamic imports with loading states
+- Components are split into smaller, more manageable chunks
 
-### Backend
-- **Runtime**: Node.js
-- **Datenbank**: MongoDB mit Prisma als ORM
-- **Caching**: Redis für Module und Sitzungsdaten
-- **Authentication**: NextAuth.js mit JWT
-- **Payment Processing**: Stripe
+### Redis Caching
+- Module data is cached using Redis
+- Cache TTL set to 24 hours
+- Cache invalidation on module updates
+- Caching functions:
+  - `getCachedModule`: Retrieve single module
+  - `setCachedModule`: Cache single module
+  - `getCachedModules`: Retrieve all modules
+  - `setCachedModules`: Cache all modules
+  - `invalidateModuleCache`: Invalidate single module cache
+  - `invalidateAllModulesCache`: Invalidate all modules cache
 
-### Testing
-- **Unit Tests**: Vitest
-- **E2E Tests**: Playwright
-- **Code Coverage**: Istanbul
+### Code Splitting
+- Routes are code-split by default using Next.js App Router
+- Dynamic imports for heavy components
+- Suspense boundaries for loading states
+- Optimized bundle sizes
 
-## Architektur-Entscheidungen
+## Security Measures
 
-### 1. Modulare Struktur
-- Komponenten sind in logische Module aufgeteilt
-- Wiederverwendbare UI-Komponenten in `/components/ui`
-- Feature-spezifische Komponenten in `/components/[feature]`
-- API-Routen in `/app/api/[route]`
+### Authentication & Authorization
+- NextAuth.js for authentication
+- Role-based access control (USER, ADMIN, INSTRUCTOR)
+- Protected API routes
+- Session management
 
-### 2. Datenmodell
-- **User**: Zentrale Entität für Benutzerverwaltung
-- **Module**: Lerninhalte mit verschiedenen Typen (Topics, Exercises, Quiz, Flashcards)
-- **Course**: Container für Module mit Metadaten
-- **Progress**: Benutzerfortschritt und Statistiken
+### API Security
+- Rate limiting using Upstash Redis
+- IP whitelisting
+- Input validation and sanitization
+- CORS configuration
+- Content Security Policy (CSP)
 
-### 3. Sicherheit
-- **Authentication**: JWT-basierte Authentifizierung
-- **Authorization**: Rollenbasierte Zugriffskontrolle (RBAC)
-- **Rate Limiting**: 100 Anfragen pro Minute
-- **CSP**: Strikte Content Security Policy
-- **Input Validation**: Zod für Schema-Validierung
+### Data Protection
+- Encrypted connections (HTTPS)
+- Secure password hashing
+- Environment variable protection
+- Database security best practices
 
-### 4. Performance
-- **Caching**: Redis für Module und Sitzungsdaten
-- **Lazy Loading**: Dynamische Imports für Shop-Komponenten
-- **Code Splitting**: Route-basiertes Splitting
-- **Image Optimization**: Next.js Image Component
+## Component Architecture
 
-### 5. Payment Integration
-- **Stripe**: Hauptanbieter für Zahlungsabwicklung
-- **Pläne**: Monatlich, Jährlich, Lifetime
-- **Webhooks**: Asynchrone Ereignisverarbeitung
-- **Error Handling**: Robuste Fehlerbehandlung
+### UI Components
+- Modular design using shadcn/ui
+- Reusable components:
+  - Button
+  - Card
+  - Badge
+  - Radio Group
+  - Checkbox
+  - Label
 
-## API-Struktur
+### Feature Components
+- Shop
+  - SubscriptionPlans
+  - PaymentForm
+  - ShopProducts
+- Courses
+  - CourseList
+  - CourseFilters
+  - CourseCard
 
-### REST Endpoints
-- `/api/auth/*`: Authentifizierung und Autorisierung
-- `/api/users/*`: Benutzerverwaltung
-- `/api/modules/*`: Modulverwaltung
-- `/api/courses/*`: Kursverwaltung
-- `/api/payments/*`: Zahlungsabwicklung
+### State Management
+- React hooks for local state
+- Server-side state management
+- Redis for caching
+- Prisma for database operations
 
-### WebSocket Events
-- `progress:update`: Echtzeit-Fortschrittsaktualisierungen
-- `module:complete`: Modul-Abschluss-Benachrichtigungen
+## Database Schema
+- User model with authentication fields
+- Course and module relationships
+- Subscription and payment tracking
+- Activity and progress monitoring
+
+## API Routes
+- RESTful API design
+- Protected routes with middleware
+- Rate limiting and caching
+- Error handling and logging
+
+## Testing Strategy
+- Unit tests for components
+- Integration tests for features
+- End-to-end tests for critical paths
+- Performance monitoring
 
 ## Deployment
+- Vercel deployment
+- Environment configuration
+- Build optimization
+- Performance monitoring
 
-### Produktionsumgebung
-- **Hosting**: Vercel
-- **Datenbank**: MongoDB Atlas
-- **Cache**: Upstash Redis
-- **CDN**: Vercel Edge Network
-
-### CI/CD
-- **Build**: GitHub Actions
-- **Tests**: Automatische Tests vor Deployment
-- **Deployment**: Automatisches Deployment nach erfolgreichen Tests
-
-## Monitoring
-
-### Logging
-- **Application Logs**: Vercel Logs
-- **Error Tracking**: Sentry
-- **Performance Monitoring**: Vercel Analytics
-
-### Alerts
-- **Error Rates**: Benachrichtigung bei >1% Fehlerrate
-- **Response Time**: Alert bei >3s Antwortzeit
-- **Payment Failures**: Sofortige Benachrichtigung
-
-## Zukünftige Erweiterungen
-
-### Geplante Features
-1. **Mobile App**: React Native Integration
-2. **Offline Support**: Service Worker Implementation
-3. **AI Integration**: KI-gestützte Lernempfehlungen
-4. **Community Features**: Diskussionsforen und Peer Learning
-
-### Technische Verbesserungen
-1. **GraphQL API**: Für komplexere Datenabfragen
-2. **WebRTC**: Für Live-Sessions
-3. **PWA**: Progressive Web App Funktionalität
-4. **Microservices**: Für bessere Skalierbarkeit 
+## Future Improvements
+- GraphQL API implementation
+- WebSocket for real-time features
+- Enhanced caching strategies
+- Additional security measures
+- Performance optimizations 

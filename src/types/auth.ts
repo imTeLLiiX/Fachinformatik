@@ -1,25 +1,22 @@
+export type Role = 'USER' | 'ADMIN' | 'INSTRUCTOR';
+
+export interface User {
+  id: string;
+  name?: string | null;
+  email?: string | null;
+  image?: string | null;
+  role: Role;
+  stripeCustomerId?: string | null;
+  stripeSubscriptionId?: string | null;
+}
+
 export interface LoginCredentials {
   email: string;
   password: string;
 }
 
-export interface RegisterData {
+export interface RegisterData extends LoginCredentials {
   name: string;
-  email: string;
-  password: string;
-}
-
-export interface User {
-  id: string;
-  name: string;
-  email: string;
-  role: 'user' | 'admin';
-  isPremium: boolean;
-}
-
-export interface AuthResponse {
-  user: User;
-  token: string;
 }
 
 export interface AuthError {

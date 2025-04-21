@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
 import { signOut } from 'next-auth/react';
 
-export default function Navbar() {
+export function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { user, isAuthenticated, isAdmin } = useAuth();
 
@@ -39,6 +39,12 @@ export default function Navbar() {
                 className="text-gray-900 inline-flex items-center px-1 pt-1 border-b-2 border-transparent hover:border-gray-300"
               >
                 Spiele
+              </Link>
+              <Link
+                href="/pricing"
+                className="text-gray-900 inline-flex items-center px-1 pt-1 border-b-2 border-transparent hover:border-gray-300"
+              >
+                Pricing
               </Link>
               {isAdmin && (
                 <Link
@@ -135,6 +141,12 @@ export default function Navbar() {
               className="block pl-3 pr-4 py-2 border-l-4 border-transparent text-base font-medium text-gray-600 hover:text-gray-800 hover:bg-gray-50 hover:border-gray-300"
             >
               Spiele
+            </Link>
+            <Link
+              href="/pricing"
+              className="block pl-3 pr-4 py-2 border-l-4 border-transparent text-base font-medium text-gray-600 hover:text-gray-800 hover:bg-gray-50 hover:border-gray-300"
+            >
+              Pricing
             </Link>
             {isAdmin && (
               <Link

@@ -1,28 +1,41 @@
 import { NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { getCachedModules, setCachedModules, invalidateAllModulesCache } from '@/lib/redis';
 
-export async function GET(request: Request) {
+export async function GET() {
   try {
-    const { searchParams } = new URL(request.url);
-    const courseId = searchParams.get('courseId');
-
-    if (!courseId) {
-      return NextResponse.json(
-        { error: 'courseId ist erforderlich' },
-        { status: 400 }
-      );
+    const session = await getServerSession(authOptions);
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // Try to get modules from cache
+    const cachedModules = await getCachedModules();
+    if (cachedModules) {
+      return NextResponse.json(cachedModules);
+    }
+
+    // If not in cache, fetch from database
     const modules = await prisma.module.findMany({
-      where: { courseId },
-      orderBy: { order: 'asc' }
+      include: {
+        lessons: true,
+        quizzes: true,
+      },
+      orderBy: {
+        order: 'asc',
+      },
     });
+
+    // Cache the modules
+    await setCachedModules(modules);
 
     return NextResponse.json(modules);
   } catch (error) {
-    console.error('Error in GET /api/modules:', error);
+    console.error('Error fetching modules:', error);
     return NextResponse.json(
-      { error: 'Fehler beim Abrufen der Module' },
+      { error: 'Internal Server Error' },
       { status: 500 }
     );
   }
@@ -30,44 +43,38 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const moduleData = await request.json();
-    const { courseId, title, description, content, order } = moduleData;
-
-    if (!courseId || !title || !description || !content || order === undefined) {
-      return NextResponse.json(
-        { error: 'Alle Pflichtfelder müssen ausgefüllt sein' },
-        { status: 400 }
-      );
+    const session = await getServerSession(authOptions);
+    if (!session || session.user.role !== 'ADMIN') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const course = await prisma.course.findUnique({
-      where: { id: courseId }
-    });
-
-    if (!course) {
-      return NextResponse.json(
-        { error: 'Der angegebene Kurs existiert nicht' },
-        { status: 404 }
-      );
-    }
-
+    const data = await request.json();
     const module = await prisma.module.create({
       data: {
-        title,
-        description,
-        content,
-        order,
-        courseId,
-        createdAt: new Date(),
-        updatedAt: new Date()
-      }
+        title: data.title,
+        description: data.description,
+        order: data.order,
+        lessons: {
+          create: data.lessons || [],
+        },
+        quizzes: {
+          create: data.quizzes || [],
+        },
+      },
+      include: {
+        lessons: true,
+        quizzes: true,
+      },
     });
 
-    return NextResponse.json(module, { status: 201 });
+    // Invalidate the modules cache
+    await invalidateAllModulesCache();
+
+    return NextResponse.json(module);
   } catch (error) {
     console.error('Error creating module:', error);
     return NextResponse.json(
-      { error: 'Fehler beim Erstellen des Moduls' },
+      { error: 'Internal Server Error' },
       { status: 500 }
     );
   }

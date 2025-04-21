@@ -9,24 +9,27 @@ interface RouteParams {
 
 export async function GET(request: Request, { params }: RouteParams) {
   try {
-    const { id } = params;
-
-    const module = await prisma.module.findUnique({
-      where: { id: id }
+    const moduleData = await prisma.module.findUnique({
+      where: { id: params.id },
+      include: {
+        exercises: true,
+        quizzes: true,
+        flashcards: true,
+      },
     });
 
-    if (!module) {
+    if (!moduleData) {
       return NextResponse.json(
-        { error: 'Modul nicht gefunden' },
+        { error: 'Module not found' },
         { status: 404 }
       );
     }
 
-    return NextResponse.json(module);
+    return NextResponse.json(moduleData);
   } catch (error) {
     console.error('Error fetching module:', error);
     return NextResponse.json(
-      { error: 'Fehler beim Abrufen des Moduls' },
+      { error: 'Internal server error' },
       { status: 500 }
     );
   }
@@ -34,33 +37,17 @@ export async function GET(request: Request, { params }: RouteParams) {
 
 export async function PUT(request: Request, { params }: RouteParams) {
   try {
-    const { id } = params;
-    const updateData = await request.json();
-    const { title, description, content, order } = updateData;
-
-    if (!title || !description || !content || order === undefined) {
-      return NextResponse.json(
-        { error: 'Alle Pflichtfelder müssen ausgefüllt sein' },
-        { status: 400 }
-      );
-    }
-
-    const module = await prisma.module.update({
-      where: { id: id },
-      data: {
-        title,
-        description,
-        content,
-        order,
-        updatedAt: new Date()
-      }
+    const moduleData = await request.json();
+    const updatedModule = await prisma.module.update({
+      where: { id: params.id },
+      data: moduleData,
     });
 
-    return NextResponse.json(module);
+    return NextResponse.json(updatedModule);
   } catch (error) {
     console.error('Error updating module:', error);
     return NextResponse.json(
-      { error: 'Fehler beim Aktualisieren des Moduls' },
+      { error: 'Internal server error' },
       { status: 500 }
     );
   }

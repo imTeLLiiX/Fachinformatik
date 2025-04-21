@@ -1,70 +1,59 @@
 import { NextResponse } from 'next/server';
-import bcrypt from 'bcryptjs';
+import { hash } from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
+import { Role } from '@/types/auth';
 
 export async function POST(request: Request) {
   try {
     const { name, email, password } = await request.json();
 
-    if (!name || !email || !password) {
+    if (!email || !password || !name) {
       return NextResponse.json(
-        { error: 'Please provide all required fields' },
+        { message: 'Missing required fields' },
         { status: 400 }
       );
     }
 
-    if (password.length < 6) {
-      return NextResponse.json(
-        { error: 'Password must be at least 6 characters long' },
-        { status: 400 }
-      );
-    }
-
-    // Check if user already exists
     const existingUser = await prisma.user.findUnique({
-      where: { email }
+      where: { email },
     });
 
     if (existingUser) {
       return NextResponse.json(
-        { error: 'User already exists' },
+        { message: 'User already exists' },
         { status: 400 }
       );
     }
 
-    // Hash password
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    // Split name into firstName and lastName
+    const hashedPassword = await hash(password, 12);
     const [firstName, ...lastNameParts] = name.split(' ');
     const lastName = lastNameParts.join(' ');
 
-    // Create user
-    const newUser = await prisma.user.create({
+    const user = await prisma.user.create({
       data: {
         email,
         passwordHash: hashedPassword,
         firstName,
         lastName,
-        role: 'USER',
-        isVerified: false
-      }
+        role: 'USER' as Role,
+      },
     });
 
-    // Remove password from response
-    const userResponse = {
-      id: newUser.id,
-      name: `${newUser.firstName || ''} ${newUser.lastName || ''}`.trim() || newUser.email,
-      email: newUser.email,
-      role: newUser.role.toLowerCase(),
-      isPremium: false
-    };
-
-    return NextResponse.json({ user: userResponse });
+    return NextResponse.json(
+      {
+        user: {
+          id: user.id,
+          email: user.email,
+          name: user.firstName + ' ' + user.lastName,
+          role: user.role,
+        },
+      },
+      { status: 201 }
+    );
   } catch (error) {
     console.error('Registration error:', error);
     return NextResponse.json(
-      { error: 'An error occurred during registration' },
+      { message: 'Something went wrong' },
       { status: 500 }
     );
   }

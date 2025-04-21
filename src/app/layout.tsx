@@ -1,17 +1,15 @@
-import type { Metadata } from 'next'
+import { Suspense } from 'react'
+import { Metadata } from 'next'
 import { Inter } from 'next/font/google'
+import { Analytics } from '@vercel/analytics/react'
+import { SpeedInsights } from '@vercel/speed-insights/next'
 import './globals.css'
-import Navbar from '@/components/Navbar'
-import ClientProvider from '@/components/ClientProvider'
 
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
   title: 'IT Learning Platform',
-  description: 'Eine Plattform zum Lernen von IT-Themen',
-  icons: {
-    icon: '/favicon.svg',
-  },
+  description: 'Eine moderne Plattform zum Lernen von IT-Konzepten',
 }
 
 export default function RootLayout({
@@ -22,10 +20,15 @@ export default function RootLayout({
   return (
     <html lang="de">
       <body className={inter.className}>
-        <ClientProvider>
-          <Navbar />
-          <main>{children}</main>
-        </ClientProvider>
+        <Suspense fallback={
+          <div className="flex items-center justify-center min-h-screen">
+            <div className="animate-spin rounded-full h-32 w-32 border-t-2 border-b-2 border-blue-500"></div>
+          </div>
+        }>
+          {children}
+          <Analytics />
+          <SpeedInsights />
+        </Suspense>
       </body>
     </html>
   )
