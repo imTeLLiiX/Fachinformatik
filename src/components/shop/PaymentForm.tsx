@@ -2,14 +2,15 @@
 
 import React, { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { PAYMENT_PLANS } from '@/lib/stripe';
+import { SUBSCRIPTION_PLANS } from '@/lib/stripe';
+import { SubscriptionTier } from '@prisma/client';
 
 const PaymentForm: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
   const searchParams = useSearchParams();
-  const planKey = searchParams?.get('plan');
+  const planKey = searchParams?.get('plan') as SubscriptionTier | null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,7 +28,7 @@ const PaymentForm: React.FC = () => {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ plan: planKey }),
+        body: JSON.stringify({ tier: planKey }),
       });
 
       if (!response.ok) {
@@ -43,7 +44,7 @@ const PaymentForm: React.FC = () => {
     }
   };
 
-  const selectedPlan = planKey ? PAYMENT_PLANS[planKey] : null;
+  const selectedPlan = planKey ? SUBSCRIPTION_PLANS[planKey] : null;
 
   if (!selectedPlan) {
     return (
@@ -70,8 +71,7 @@ const PaymentForm: React.FC = () => {
             Ausgewählter Plan: {selectedPlan.name}
           </h3>
           <p className="text-gray-600">
-            Preis: {selectedPlan.price / 100}€
-            {selectedPlan.interval && `/${selectedPlan.interval === 'month' ? 'Monat' : 'Jahr'}`}
+            Preis: {selectedPlan.price}€/Monat
           </p>
         </div>
 

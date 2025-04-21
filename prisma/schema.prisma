@@ -13,6 +13,18 @@ enum Role {
   INSTRUCTOR
 }
 
+enum SubscriptionTier {
+  BASIC
+  PREMIUM
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  CANCELED
+  PAST_DUE
+  UNPAID
+}
+
 model User {
   id                 String    @id @default(auto()) @map("_id") @db.ObjectId
   email              String    @unique
@@ -28,6 +40,10 @@ model User {
   resetTokenExp      DateTime?
   courses            Course[]  @relation("UserCourses")
   enrollments        Enrollment[]
+  stripeCustomerId   String?   @unique
+  stripeSubscriptionId String?   @unique
+  subscriptionStatus SubscriptionStatus?
+  subscriptionTier   SubscriptionTier   @default(BASIC)
 }
 
 model Course {
