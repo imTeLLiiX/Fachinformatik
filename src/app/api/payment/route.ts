@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import { createCheckoutSession, createPortalSession } from '@/lib/stripe'
+import { PaymentService } from '@/lib/stripe'
+import { SubscriptionTier } from '@prisma/client'
 
 export async function POST(req: Request) {
   try {
@@ -22,12 +23,13 @@ export async function POST(req: Request) {
       )
     }
 
-    const checkoutSession = await createCheckoutSession(
-      tier,
-      session.user.id,
+    const paymentService = new PaymentService()
+    const checkoutSession = await paymentService.createCheckoutSession({
+      customerId: session.user.id,
+      tier: tier as SubscriptionTier,
       successUrl,
       cancelUrl
-    )
+    })
 
     return NextResponse.json({ url: checkoutSession.url })
   } catch (error) {
@@ -59,7 +61,8 @@ export async function GET(req: Request) {
       )
     }
 
-    const portalSession = await createPortalSession(
+    const paymentService = new PaymentService()
+    const portalSession = await paymentService.createPortalSession(
       session.user.id,
       returnUrl
     )

@@ -1,26 +1,27 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
-interface RouteParams {
+type RouteParams = {
   params: {
     id: string;
   };
-}
+};
 
-export async function GET(request: Request, { params }: RouteParams) {
+export async function GET(
+  request: Request,
+  { params }: { params: { id: string } }
+) {
   try {
     const moduleData = await prisma.module.findUnique({
       where: { id: params.id },
       include: {
-        exercises: true,
-        quizzes: true,
-        flashcards: true,
-      },
+        course: true
+      }
     });
 
     if (!moduleData) {
       return NextResponse.json(
-        { error: 'Module not found' },
+        { error: 'Modul nicht gefunden' },
         { status: 404 }
       );
     }
@@ -29,7 +30,7 @@ export async function GET(request: Request, { params }: RouteParams) {
   } catch (error) {
     console.error('Error fetching module:', error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Fehler beim Abrufen des Moduls' },
       { status: 500 }
     );
   }
