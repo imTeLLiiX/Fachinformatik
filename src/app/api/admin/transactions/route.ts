@@ -2,30 +2,20 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-import { SubscriptionStatus, SubscriptionTier } from '@prisma/client';
-
-type Transaction = {
-  id: string;
-  user: string;
-  email: string;
-  status: SubscriptionStatus;
-  tier: SubscriptionTier;
-};
 
 export async function GET() {
   try {
     const session = await getServerSession(authOptions);
-    
-    if (!session?.user || session.user.role !== 'ADMIN') {
-      return NextResponse.json(
-        { error: 'Nicht autorisiert' },
-        { status: 401 }
-      );
+
+    if (!session || session.user.role !== 'ADMIN') {
+      return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 401 });
     }
 
     const users = await prisma.user.findMany({
       where: {
-        stripeSubscriptionId: { not: null },
+        stripeSubscriptionId: {
+          not: null
+        }
       },
       select: {
         id: true,
@@ -35,14 +25,14 @@ export async function GET() {
         stripeSubscriptionId: true,
         subscriptionStatus: true,
         subscriptionTier: true,
-      },
+      }
     });
 
-    const transactions: Transaction[] = users.map((user) => ({
-      id: user.stripeSubscriptionId!,
-      user: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email,
+    const transactions = users.map(user => ({
+      id: user.id,
+      user: `${user.firstName || ''} ${user.lastName || ''}`.trim(),
       email: user.email,
-      status: user.subscriptionStatus || 'CANCELED',
+      status: user.subscriptionStatus || 'INACTIVE',
       tier: user.subscriptionTier,
     }));
 

@@ -1,42 +1,51 @@
-import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { createSession } from "@/lib/session";
-import bcrypt from "bcryptjs";
+import { NextResponse } from 'next/server';
+import { compare } from 'bcryptjs';
+import { prisma } from '@/lib/prisma';
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
-    const { email, password } = body;
+    const { email, password } = await request.json();
 
-    // Find user by email
+    if (!email || !password) {
+      return NextResponse.json(
+        { error: 'Email und Passwort sind erforderlich' },
+        { status: 400 }
+      );
+    }
+
     const user = await prisma.user.findUnique({
-      where: { email }
+      where: { email },
     });
 
     if (!user) {
       return NextResponse.json(
-        { error: "Invalid credentials" },
+        { error: 'Benutzer nicht gefunden' },
         { status: 401 }
       );
     }
 
-    // Verify password
-    const isValid = await bcrypt.compare(password, user.passwordHash);
-    if (!isValid) {
+    const isPasswordValid = await compare(password, user.passwordHash);
+
+    if (!isPasswordValid) {
       return NextResponse.json(
-        { error: "Invalid credentials" },
+        { error: 'Ungültiges Passwort' },
         { status: 401 }
       );
     }
 
-    // Create session
-    const session = await createSession(user.id);
-
-    return NextResponse.json({ session });
+    return NextResponse.json({
+      user: {
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        role: user.role,
+      },
+    });
   } catch (error) {
-    console.error("Login error:", error);
+    console.error('Login error:', error);
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: 'Ein Fehler ist aufgetreten' },
       { status: 500 }
     );
   }

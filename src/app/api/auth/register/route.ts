@@ -1,41 +1,43 @@
 import { NextResponse } from 'next/server';
 import { hash } from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
-import { Role } from '@/types/auth';
+import { Role } from '@prisma/client';
 
 export async function POST(request: Request) {
   try {
-    const { name, email, password } = await request.json();
+    const { email, password, firstName, lastName } = await request.json();
 
-    if (!email || !password || !name) {
+    // Validate input
+    if (!email || !password) {
       return NextResponse.json(
-        { message: 'Missing required fields' },
+        { error: 'Email und Passwort sind erforderlich' },
         { status: 400 }
       );
     }
 
+    // Check if user already exists
     const existingUser = await prisma.user.findUnique({
       where: { email },
     });
 
     if (existingUser) {
       return NextResponse.json(
-        { message: 'User already exists' },
+        { error: 'Ein Benutzer mit dieser E-Mail existiert bereits' },
         { status: 400 }
       );
     }
 
+    // Hash password
     const hashedPassword = await hash(password, 12);
-    const [firstName, ...lastNameParts] = name.split(' ');
-    const lastName = lastNameParts.join(' ');
 
+    // Create user
     const user = await prisma.user.create({
       data: {
         email,
         passwordHash: hashedPassword,
         firstName,
         lastName,
-        role: 'USER' as Role,
+        role: Role.USER,
       },
     });
 
@@ -44,7 +46,8 @@ export async function POST(request: Request) {
         user: {
           id: user.id,
           email: user.email,
-          name: user.firstName + ' ' + user.lastName,
+          firstName: user.firstName,
+          lastName: user.lastName,
           role: user.role,
         },
       },
@@ -53,7 +56,7 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error('Registration error:', error);
     return NextResponse.json(
-      { message: 'Something went wrong' },
+      { error: 'Ein Fehler ist aufgetreten' },
       { status: 500 }
     );
   }
