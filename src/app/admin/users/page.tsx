@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Search, Plus, Edit, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { prisma } from '@/lib/prisma';
+import type { User } from '.prisma/client';
 
 // TODO: Replace with real data from database
 const roles = [
@@ -67,7 +68,7 @@ export default async function UsersPage() {
                 </tr>
               </thead>
               <tbody>
-                {users.map((user) => (
+                {users.map((user: User) => (
                   <tr key={user.id} className="border-b">
                     <td className="py-3 px-4">{`${user.firstName || ''} ${user.lastName || ''}`}</td>
                     <td className="py-3 px-4">{user.email}</td>
