@@ -6,9 +6,17 @@ import { Input } from '@/components/ui/input';
 import { Search, Plus, Edit, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { prisma } from '@/lib/prisma';
-import type { User } from '.prisma/client';
 
-// TODO: Replace with real data from database
+interface User {
+  id: string;
+  email: string;
+  firstName: string | null;
+  lastName: string | null;
+  role: 'USER' | 'ADMIN';
+  subscriptionStatus: 'ACTIVE' | 'CANCELED' | 'PAST_DUE' | 'UNPAID' | 'TRIAL' | null;
+  subscriptionTier: 'FREE' | 'BASIC' | 'PREMIUM';
+}
+
 const roles = [
   { id: 'USER', name: 'Benutzer', color: 'bg-blue-100 text-blue-800' },
   { id: 'ADMIN', name: 'Administrator', color: 'bg-red-100 text-red-800' }
@@ -17,7 +25,7 @@ const roles = [
 export default async function UsersPage() {
   const users = await prisma.user.findMany({
     orderBy: { createdAt: 'desc' },
-  });
+  }) as User[];
 
   return (
     <div className="space-y-8">
@@ -68,7 +76,7 @@ export default async function UsersPage() {
                 </tr>
               </thead>
               <tbody>
-                {users.map((user: User) => (
+                {users.map((user) => (
                   <tr key={user.id} className="border-b">
                     <td className="py-3 px-4">{`${user.firstName || ''} ${user.lastName || ''}`}</td>
                     <td className="py-3 px-4">{user.email}</td>
