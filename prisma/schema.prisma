@@ -1,0 +1,91 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum SubscriptionTier {
+  FREE
+  BASIC
+  PREMIUM
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  CANCELED
+  PAST_DUE
+  UNPAID
+  TRIAL
+}
+
+model User {
+  id                 String    @id @default(auto()) @map("_id") @db.ObjectId
+  email              String    @unique
+  firstName          String?
+  lastName           String?
+  passwordHash       String
+  role               Role      @default(USER)
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  stripeCustomerId   String?   @unique
+  stripeSubscriptionId String? @unique
+  subscriptionStatus SubscriptionStatus?
+  subscriptionTier   SubscriptionTier   @default(FREE)
+  enrollments        Enrollment[]
+  courses            Course[]
+}
+
+model Course {
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  title       String
+  description String
+  slug        String    @unique
+  price       Float
+  published   Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  authorId    String    @db.ObjectId
+  author      User      @relation(fields: [authorId], references: [id])
+  enrollments Enrollment[]
+  modules     Module[]
+}
+
+model Module {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  title       String
+  description String
+  content     String
+  order       Int
+  slug        String   @unique
+  courseId    String   @db.ObjectId
+  course      Course   @relation(fields: [courseId], references: [id])
+  duration    String?
+  topics      Json?
+  exercises   Json?
+  quiz        Json?
+  flashcards  Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([courseId])
+}
+
+model Enrollment {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String   @db.ObjectId
+  courseId  String   @db.ObjectId
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id])
+  course    Course   @relation(fields: [courseId], references: [id])
+
+  @@unique([userId, courseId])
+} 
